@@ -1,0 +1,7 @@
+export CLAUDE_CODE_ENABLE_TELEMETRY=1
+export OTEL_METRICS_EXPORTER="otlp"
+export OTEL_LOGS_EXPORTER="otlp"
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+export OTEL_EXPORTER_OTLP_ENDPOINT="api.honeycomb.io:443"
+export OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=hcaik_01jyhrs73nvy06ckhcsw0jv5wyn40knrwkfwrqaw2q1sch4cqze3k52mzt
+export OTEL_LOG_USER_PROMPTS=1

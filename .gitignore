@@ -1,0 +1,80 @@
+# Xcode
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xcscmblueprint
+*.xcuserstate
+
+# SwiftPM
+.build/
+.swiftpm/xcode/package.xcworkspace/
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# Accio
+Dependencies/
+.accio/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# SwiftPM Binary Artifacts
+Artifacts/
+
+# XCFrameworks
+*.xcframework
+
+# Xcode Playground
+timeline.xctimeline
+playground.xcworkspace
+
+# SPM checkouts
+.checkouts/
+
+# Archives
+*.xcarchive
+
+# Profiles and Certificates
+*.mobileprovision
+*.provisionprofile
+*.xcconfig
+*.xcent
+*.pem
+*.cer
+*.crt
+*.p12
+*.p8
+
+# Others
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Local env
+.env
+
+# IDEs
+.idea/
+*.iml
+*.sw?
+
+# Misc
+.DS_Store
