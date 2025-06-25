@@ -110,7 +110,7 @@ struct ProductRowView: View {
                 .frame(width: 80, height: 80)
                 .cornerRadius(8)
                 .overlay(
-                    Image(systemName: "telescope")
+                    Image("telescope")
                         .font(.title)
                         .foregroundColor(.gray)
                 )

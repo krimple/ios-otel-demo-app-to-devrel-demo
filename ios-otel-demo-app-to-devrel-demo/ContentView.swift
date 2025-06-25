@@ -37,7 +37,7 @@ struct ContentView: View {
             VStack(spacing: 30) {
                 // App Icon and Title
                 VStack(spacing: 16) {
-                    Image(systemName: "telescope")
+                    Image("telescope")
                         .font(.system(size: 80))
                         .foregroundColor(.blue)
                     

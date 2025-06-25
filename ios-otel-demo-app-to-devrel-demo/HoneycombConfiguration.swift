@@ -5,6 +5,7 @@ struct HoneycombConfiguration {
     let serviceName: String
     let serviceVersion: String
     let apiEndpoint: String
+    let telemetryEndpoint: String
     let debug: Bool
     
     static func loadFromBundle() throws -> HoneycombConfiguration {
@@ -15,7 +16,9 @@ struct HoneycombConfiguration {
         
         guard let apiKey = plist["HONEYCOMB_API_KEY"] as? String,
               let serviceName = plist["SERVICE_NAME"] as? String,
-              let apiEndpoint = plist["API_ENDPOINT"] as? String else {
+              let apiEndpoint = plist["API_ENDPOINT"] as? String,
+              let telemetryEndpoint = plist["TELEMETRY_ENDPOINT"] as? String
+        else {
             throw ConfigurationError.missingRequiredFields
         }
         
@@ -24,6 +27,7 @@ struct HoneycombConfiguration {
             serviceName: serviceName,
             serviceVersion: plist["SERVICE_VERSION"] as? String ?? "1.0.0",
             apiEndpoint: apiEndpoint,
+            telemetryEndpoint: telemetryEndpoint,
             debug: plist["DEBUG"] as? Bool ?? true
         )
     }

@@ -15,7 +15,7 @@ struct ProductDetailView: View {
                     .frame(height: 300)
                     .cornerRadius(12)
                     .overlay(
-                        Image(systemName: "telescope")
+                        Image("telescope")
                             .font(.system(size: 80))
                             .foregroundColor(.gray)
                     )

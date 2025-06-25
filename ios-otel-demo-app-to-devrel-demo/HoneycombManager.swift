@@ -14,6 +14,7 @@ class HoneycombManager {
             .setAPIKey(config.apiKey)
             .setServiceName(config.serviceName)
             .setServiceVersion(config.serviceVersion)
+            .setAPIEndpoint(config.telemetryEndpoint)
             .setDebug(config.debug)
             .build()
         
