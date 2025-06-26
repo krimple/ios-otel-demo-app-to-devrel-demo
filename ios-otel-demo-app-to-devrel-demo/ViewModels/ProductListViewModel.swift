@@ -10,6 +10,10 @@ class ProductListViewModel: ObservableObject {
     
     private var productService: ProductAPIService
     
+    var apiService: ProductAPIService {
+        return productService
+    }
+    
     init(productService: ProductAPIService) {
         self.productService = productService
     }

@@ -9,6 +9,10 @@ class ProductAPIService: ObservableObject {
         self.httpClient = httpClient
     }
     
+    func getImageUrl(for picture: String) -> String {
+        return ImageLoader.getImageUrl(picture: picture, apiEndpoint: httpClient.apiEndpoint)
+    }
+    
     func fetchProducts(currencyCode: String = "USD") async throws -> [Product] {
         // The HTTPClient will automatically add trace propagation headers
         return try await httpClient.request(

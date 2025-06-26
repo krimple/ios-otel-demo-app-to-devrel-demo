@@ -3,6 +3,7 @@ import SwiftUI
 struct ProductDetailView: View {
     let product: Product
     @EnvironmentObject var cartViewModel: CartViewModel
+    @EnvironmentObject var productService: ProductAPIService
     @State private var quantity = 1
     @State private var showingSlowAnimation = false
     
@@ -10,15 +11,21 @@ struct ProductDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Product Image
-                Rectangle()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: 300)
-                    .cornerRadius(12)
-                    .overlay(
-                        Image("telescope")
-                            .font(.system(size: 80))
-                            .foregroundColor(.gray)
-                    )
+                AsyncImage(url: URL(string: productService.getImageUrl(for: product.picture))) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .overlay(
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                        )
+                }
+                .frame(height: 300)
+                .cornerRadius(12)
+                .clipped()
                 
                 // Product Info
                 VStack(alignment: .leading, spacing: 12) {
