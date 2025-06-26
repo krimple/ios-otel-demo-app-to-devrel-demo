@@ -4,24 +4,26 @@ struct AstronomyShopView: View {
     @EnvironmentObject var cartViewModel: CartViewModel
     @EnvironmentObject var productService: ProductAPIService
     @EnvironmentObject var recommendationService: RecommendationService
-    @StateObject private var productListViewModel: ProductListViewModel
-    
-    init() {
-        // We'll properly initialize this in the init when services are available
-        self._productListViewModel = StateObject(wrappedValue: ProductListViewModel(
-            productService: ProductAPIService(httpClient: HTTPClient(baseURL: "temp"))
-        ))
-    }
+    @State private var productListViewModel: ProductListViewModel?
     
     var body: some View {
         TabView {
-            ProductListView()
-                .environmentObject(productListViewModel)
-                .environmentObject(cartViewModel)
-                .tabItem {
-                    Image(systemName: "list.bullet")
-                    Text("Products")
-                }
+            if let viewModel = productListViewModel {
+                ProductListView()
+                    .environmentObject(viewModel)
+                    .environmentObject(cartViewModel)
+                    .tabItem {
+                        Image(systemName: "list.bullet")
+                        Text("Products")
+                    }
+            } else {
+                ProgressView("Initializing...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .tabItem {
+                        Image(systemName: "list.bullet")
+                        Text("Products")
+                    }
+            }
             
             CartView()
                 .environmentObject(cartViewModel)
@@ -33,8 +35,10 @@ struct AstronomyShopView: View {
         .navigationTitle("Astronomy Shop")
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
-            // Update the view model with the correct service
-            productListViewModel.updateService(productService)
+            // Initialize the view model with the correct service
+            if productListViewModel == nil {
+                productListViewModel = ProductListViewModel(productService: productService)
+            }
             
             // Record navigation to shop
             HoneycombManager.shared.createEvent(name: "navigation.screen_viewed")
@@ -79,8 +83,10 @@ struct ProductListView: View {
                     List(viewModel.products) { product in
                         NavigationLink(destination: ProductDetailView(product: product)
                             .environmentObject(cartViewModel)
+                            .environmentObject(viewModel.apiService)
                         ) {
                             ProductRowView(product: product, cartViewModel: cartViewModel)
+                                .environmentObject(viewModel.apiService)
                         }
                     }
                     .refreshable {
@@ -101,19 +107,26 @@ struct ProductListView: View {
 struct ProductRowView: View {
     let product: Product
     let cartViewModel: CartViewModel
+    @EnvironmentObject var productService: ProductAPIService
     
     var body: some View {
         HStack {
-            // Product image placeholder
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 80, height: 80)
-                .cornerRadius(8)
-                .overlay(
-                    Image("telescope")
-                        .font(.title)
-                        .foregroundColor(.gray)
-                )
+            // Product image
+            AsyncImage(url: URL(string: productService.getImageUrl(for: product.picture))) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+                    .overlay(
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                    )
+            }
+            .frame(width: 80, height: 80)
+            .cornerRadius(8)
+            .clipped()
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(product.name)

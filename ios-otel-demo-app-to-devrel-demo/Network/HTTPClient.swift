@@ -28,6 +28,10 @@ class HTTPClient {
         self.session = URLSession.shared
     }
     
+    var apiEndpoint: String {
+        return baseURL
+    }
+    
     func request<T: Codable>(
         endpoint: String,
         method: HTTPMethod = .GET,
