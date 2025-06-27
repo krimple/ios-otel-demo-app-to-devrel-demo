@@ -104,18 +104,26 @@ struct CartView: View {
 struct CartItemRow: View {
     let item: CartItem
     let cartViewModel: CartViewModel
+    @EnvironmentObject var productService: ProductAPIService
     
     var body: some View {
-        HStack {
-            // Product image placeholder
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 60, height: 60)
-                .cornerRadius(8)
-                .overlay(
-                    Image("telescope")
-                        .foregroundColor(.gray)
-                )
+        HStack(spacing: 12) {
+            // Product image
+            AsyncImage(url: URL(string: productService.getImageUrl(for: item.product.picture))) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+                    .overlay(
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                    )
+            }
+            .frame(width: 60, height: 60)
+            .cornerRadius(8)
+            .clipped()
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.product.name)
@@ -131,6 +139,7 @@ struct CartItemRow: View {
                     .fontWeight(.semibold)
                     .foregroundColor(.blue)
             }
+            .padding(.leading, 8)
             
             Spacer()
             

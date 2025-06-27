@@ -27,6 +27,7 @@ struct AstronomyShopView: View {
             
             CartView()
                 .environmentObject(cartViewModel)
+                .environmentObject(productService)
                 .tabItem {
                     Image(systemName: "cart")
                     Text("Cart")
