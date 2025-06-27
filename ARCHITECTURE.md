@@ -116,14 +116,37 @@ This iOS app demonstrates OpenTelemetry instrumentation patterns with Honeycomb 
 - **SwiftUI**: Declarative UI framework
 - **Foundation**: Core networking with URLSession
 
+## Continuous Integration
+
+**GitHub Actions Setup**: `.github/workflows/ci.yml`
+
+- **Runner Environment**: macOS-15 with Xcode 16.0 for project format 77 compatibility
+- **iOS Simulator**: iPhone 16 simulator for automated testing
+- **Deployment Target**: iOS 18.0 (compatible with GitHub runner limitations)
+- **Swift Package Caching**: Optimized build times through dependency caching
+- **Parallel Jobs**: Unit tests and UI tests run in separate jobs for efficiency
+
+**Test Strategy**:
+- Unit tests run first with comprehensive HTTP client and model validation
+- UI tests execute only after unit tests pass
+- Environment-specific test skipping for CI compatibility
+- Detailed failure reporting with full build logs
+
+**Build Configuration**:
+- Code signing disabled for CI environment (`CODE_SIGNING_ALLOWED=NO`)
+- Project format 77 support requiring Xcode 16+
+- Automatic Swift package resolution and caching
+
 ## File Organization
 
 ```
 ios-otel-demo-app-to-devrel-demo/
+├── .github/workflows/   # CI/CD configuration
 ├── Models/              # Data structures and API models
 ├── Network/             # HTTP client and networking
 ├── Services/            # Business logic services
 ├── Views/               # SwiftUI view components
 ├── ViewModels/          # MVVM view models
+├── Tests/               # Unit and UI test suites
 └── Configuration/       # App configuration and setup
 ```
