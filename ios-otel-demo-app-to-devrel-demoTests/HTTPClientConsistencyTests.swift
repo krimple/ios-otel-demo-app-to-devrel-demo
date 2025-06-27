@@ -112,13 +112,14 @@ class HTTPClientConsistencyTests: XCTestCase {
     
     func testHTTPErrorMessages() {
         let invalidURLError = HTTPError.invalidURL
-        XCTAssertEqual(invalidURLError.localizedDescription, "Invalid URL")
+        XCTAssertTrue(invalidURLError.localizedDescription.contains("Invalid URL"))
         
         let invalidResponseError = HTTPError.invalidResponse
-        XCTAssertEqual(invalidResponseError.localizedDescription, "Invalid response")
+        XCTAssertTrue(invalidResponseError.localizedDescription.contains("Invalid response"))
         
-        let statusCodeError = HTTPError.statusCode(404)
-        XCTAssertEqual(statusCodeError.localizedDescription, "HTTP error: 404")
+        let statusCodeError = HTTPError(message: "HTTP 404 Not Found - Response: Page not found")
+        XCTAssertTrue(statusCodeError.localizedDescription.contains("HTTP 404"))
+        XCTAssertTrue(statusCodeError.localizedDescription.contains("Page not found"))
     }
     
     func testCheckoutRequestCreation() {

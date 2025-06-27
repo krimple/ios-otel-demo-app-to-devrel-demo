@@ -63,7 +63,7 @@ class HTTPClient {
             // Log the specific error details
             print("❌ Request failed: \(error)")
             if let httpError = error as? HTTPError {
-                print("📊 HTTP Error Details: \(httpError.detailedDescription)")
+                print("📊 HTTP Error Details: \(httpError.localizedDescription)")
             }
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
@@ -138,11 +138,19 @@ class HTTPClient {
                 }
             }
             
-            // Record FULL response body
+            // Build error message with status code and response body
+            var errorMessage = "HTTP \(httpResponse.statusCode) \(HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))"
+            
+            // Record FULL response body and add to error message
             if let responseData = String(data: data, encoding: .utf8) {
                 print("📄 Response body: \(responseData)")
                 span.setAttribute(key: "http.response.body", value: AttributeValue.string(responseData))
                 span.setAttribute(key: "http.response.body_size", value: AttributeValue.int(data.count))
+                
+                // Add response body to error message if not empty
+                if !responseData.isEmpty {
+                    errorMessage += " - Response: \(responseData)"
+                }
             } else {
                 span.setAttribute(key: "http.response.body_size", value: AttributeValue.int(data.count))
                 span.setAttribute(key: "http.response.body_encoding", value: AttributeValue.string("non-utf8"))
@@ -151,7 +159,7 @@ class HTTPClient {
             // Record URL that failed
             span.setAttribute(key: "http.url", value: AttributeValue.string(url.absoluteString))
             
-            let httpError = HTTPError.statusCode(httpResponse.statusCode)
+            let httpError = HTTPError(message: errorMessage)
             span.recordException(httpError)
             throw httpError
         }
@@ -174,62 +182,19 @@ class HTTPClient {
     }
 }
 
-enum HTTPError: Error {
-    case invalidURL
-    case invalidResponse
-    case statusCode(Int)
+struct HTTPError: Error {
+    let message: String
     
     var localizedDescription: String {
-        switch self {
-        case .invalidURL:
-            return "Invalid URL"
-        case .invalidResponse:
-            return "Invalid response"
-        case .statusCode(let code):
-            return "HTTP \(code): \(httpStatusMessage(for: code))"
-        }
+        return message
     }
     
-    var detailedDescription: String {
-        switch self {
-        case .invalidURL:
-            return "The URL could not be constructed from the provided endpoint and base URL"
-        case .invalidResponse:
-            return "The server response was not a valid HTTP response"
-        case .statusCode(let code):
-            return "HTTP \(code) \(httpStatusMessage(for: code)) - \(httpStatusDescription(for: code))"
-        }
+    // Static factory methods for common errors
+    static var invalidURL: HTTPError {
+        return HTTPError(message: "Invalid URL - could not construct URL from endpoint")
     }
     
-    private func httpStatusMessage(for code: Int) -> String {
-        switch code {
-        case 400: return "Bad Request"
-        case 401: return "Unauthorized"
-        case 403: return "Forbidden"
-        case 404: return "Not Found"
-        case 408: return "Request Timeout"
-        case 429: return "Too Many Requests"
-        case 500: return "Internal Server Error"
-        case 502: return "Bad Gateway"
-        case 503: return "Service Unavailable"
-        case 504: return "Gateway Timeout"
-        default: return "Error"
-        }
-    }
-    
-    private func httpStatusDescription(for code: Int) -> String {
-        switch code {
-        case 400: return "The request was malformed or invalid"
-        case 401: return "Authentication is required"
-        case 403: return "Access to the resource is forbidden"
-        case 404: return "The requested resource was not found"
-        case 408: return "The server timed out waiting for the request"
-        case 429: return "Too many requests sent too quickly"
-        case 500: return "The server encountered an internal error"
-        case 502: return "The server received an invalid response from upstream"
-        case 503: return "The service is temporarily unavailable"
-        case 504: return "The server timed out waiting for upstream response"
-        default: return "An HTTP error occurred"
-        }
+    static var invalidResponse: HTTPError {
+        return HTTPError(message: "Invalid response - server response was not valid HTTP")
     }
 }
