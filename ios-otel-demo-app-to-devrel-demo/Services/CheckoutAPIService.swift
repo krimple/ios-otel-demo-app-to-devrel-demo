@@ -17,24 +17,38 @@ class CheckoutAPIService: ObservableObject {
             endpoint: "/checkout",
             method: .POST,
             body: requestData,
+            queryParameters: ["currencyCode": request.userCurrency],
             spanName: "CheckoutAPIService.placeOrder"
         )
     }
     
-    func getShippingCost(address: Address, items: [CartItem]) async throws -> Money {
-        let shippingRequest = ShippingRequest(address: address, items: items)
-        let requestData = try JSONEncoder().encode(shippingRequest)
+    func getShippingCost(address: Address, items: [CheckoutItem]) async throws -> Money {
+        // Use the same approach as Android - send a preview checkout request
+        let previewRequest = CheckoutRequest(
+            userId: "shipping-preview",
+            userCurrency: "USD", 
+            address: address,
+            email: "preview@example.com",
+            creditCard: CreditCard(
+                creditCardNumber: "4111111111111111",
+                creditCardCvv: "123",
+                creditCardExpirationYear: 2030,
+                creditCardExpirationMonth: 12
+            ),
+            items: items
+        )
         
-        return try await httpClient.request(
-            endpoint: "/shipping/estimate",
+        let requestData = try JSONEncoder().encode(previewRequest)
+        
+        // Use the checkout endpoint with currency parameter like Android
+        let response: CheckoutResponse = try await httpClient.request(
+            endpoint: "/checkout",
             method: .POST,
             body: requestData,
+            queryParameters: ["currencyCode": "USD"],
             spanName: "CheckoutAPIService.getShippingCost"
         )
+        
+        return response.shippingCost
     }
-}
-
-private struct ShippingRequest: Codable {
-    let address: Address
-    let items: [CartItem]
 }

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CartView: View {
     @EnvironmentObject var cartViewModel: CartViewModel
+    @EnvironmentObject var checkoutService: CheckoutAPIService
+    @State private var showingCheckout = false
     
     var body: some View {
         NavigationView {
@@ -53,7 +55,7 @@ struct CartView: View {
                                         ])
                                         .send()
                                     
-                                    // TODO: Navigate to checkout
+                                    showingCheckout = true
                                 }) {
                                     HStack {
                                         Image(systemName: "creditcard")
@@ -89,6 +91,11 @@ struct CartView: View {
                         "cart_total": cartViewModel.totalCost
                     ])
                     .send()
+            }
+            .sheet(isPresented: $showingCheckout) {
+                // Use the existing checkout service from environment
+                let checkoutViewModel = CheckoutViewModel(checkoutService: checkoutService, cartItems: cartViewModel.items)
+                CheckoutFormView(viewModel: checkoutViewModel)
             }
         }
     }
