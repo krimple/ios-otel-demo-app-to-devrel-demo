@@ -62,9 +62,6 @@ class HTTPClient {
         } catch {
             // Log the specific error details
             print("❌ Request failed: \(error)")
-            if let httpError = error as? HTTPError {
-                print("📊 HTTP Error Details: \(httpError.localizedDescription)")
-            }
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
             throw error
@@ -88,7 +85,7 @@ class HTTPClient {
             let attemptedURL = "\(baseURL)\(endpoint)" + (queryParameters?.map { "?\($0.key)=\($0.value)" }.joined(separator: "&") ?? "")
             print("❌ Failed to create URL from: \(attemptedURL)")
             span.setAttribute(key: "error.url", value: AttributeValue.string(attemptedURL))
-            throw HTTPError.invalidURL
+            throw URLError(.badURL)
         }
         
         print("✅ Successfully created URL: \(url.absoluteString)")
@@ -117,7 +114,7 @@ class HTTPClient {
         let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw HTTPError.invalidResponse
+            throw URLError(.badServerResponse)
         }
         
         // Add response status to span
@@ -159,9 +156,12 @@ class HTTPClient {
             // Record URL that failed
             span.setAttribute(key: "http.url", value: AttributeValue.string(url.absoluteString))
             
-            let httpError = HTTPError(message: errorMessage)
-            span.recordException(httpError)
-            throw httpError
+            // Create a simple NSError with the descriptive message
+            let error = NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: [
+                NSLocalizedDescriptionKey: errorMessage
+            ])
+            span.recordException(error)
+            throw error
         }
         
         print("✅ HTTP Success: Status code \(httpResponse.statusCode)")
@@ -182,19 +182,3 @@ class HTTPClient {
     }
 }
 
-struct HTTPError: Error {
-    let message: String
-    
-    var localizedDescription: String {
-        return message
-    }
-    
-    // Static factory methods for common errors
-    static var invalidURL: HTTPError {
-        return HTTPError(message: "Invalid URL - could not construct URL from endpoint")
-    }
-    
-    static var invalidResponse: HTTPError {
-        return HTTPError(message: "Invalid response - server response was not valid HTTP")
-    }
-}

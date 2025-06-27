@@ -111,13 +111,16 @@ class HTTPClientConsistencyTests: XCTestCase {
     }
     
     func testHTTPErrorMessages() {
-        let invalidURLError = HTTPError.invalidURL
-        XCTAssertTrue(invalidURLError.localizedDescription.contains("Invalid URL"))
+        let invalidURLError = URLError(.badURL)
+        XCTAssertTrue(invalidURLError.localizedDescription.contains("URL") || invalidURLError.localizedDescription.contains("bad"))
         
-        let invalidResponseError = HTTPError.invalidResponse
-        XCTAssertTrue(invalidResponseError.localizedDescription.contains("Invalid response"))
+        let invalidResponseError = URLError(.badServerResponse)
+        XCTAssertTrue(invalidResponseError.localizedDescription.contains("response") || invalidResponseError.localizedDescription.contains("server"))
         
-        let statusCodeError = HTTPError(message: "HTTP 404 Not Found - Response: Page not found")
+        // Test NSError with status code
+        let statusCodeError = NSError(domain: "HTTPError", code: 404, userInfo: [
+            NSLocalizedDescriptionKey: "HTTP 404 Not Found - Response: Page not found"
+        ])
         XCTAssertTrue(statusCodeError.localizedDescription.contains("HTTP 404"))
         XCTAssertTrue(statusCodeError.localizedDescription.contains("Page not found"))
     }
