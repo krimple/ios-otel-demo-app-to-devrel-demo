@@ -8,10 +8,13 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: macos-15
     
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Select Xcode 16
+      run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
     
     - name: Show available Xcode versions
       run: ls -la /Applications/ | grep Xcode
@@ -55,11 +58,14 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
 
   ui-tests:
-    runs-on: macos-latest
+    runs-on: macos-15
     needs: test
     
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Select Xcode 16
+      run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
     
     - name: Cache Swift packages
       uses: actions/cache@v4
