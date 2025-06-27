@@ -56,6 +56,7 @@ struct ContentView: View {
                     NavigationLink(destination: AstronomyShopView()
                         .environmentObject(cartViewModel)
                         .environmentObject(productService)
+                        .environmentObject(checkoutService)
                         .environmentObject(recommendationService)
                     ) {
                         MainButton(title: "Go Shopping", icon: "cart.fill")

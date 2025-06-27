@@ -36,6 +36,7 @@ class HTTPClient {
         endpoint: String,
         method: HTTPMethod = .GET,
         body: Data? = nil,
+        queryParameters: [String: String]? = nil,
         spanName: String
     ) async throws -> T {
         let tracer = HoneycombManager.shared.getTracer()
@@ -53,11 +54,14 @@ class HTTPClient {
                 endpoint: endpoint, 
                 method: method, 
                 body: body, 
+                queryParameters: queryParameters,
                 span: span
             )
             span.status = .ok
             return result
         } catch {
+            // Log the specific error details
+            print("❌ Request failed: \(error)")
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
             throw error
@@ -68,11 +72,23 @@ class HTTPClient {
         endpoint: String,
         method: HTTPMethod,
         body: Data?,
+        queryParameters: [String: String]?,
         span: Span
     ) async throws -> T {
-        guard let url = URL(string: "\(baseURL)\(endpoint)") else {
-            throw HTTPError.invalidURL
+        var urlComponents = URLComponents(string: "\(baseURL)\(endpoint)")
+        
+        if let queryParameters = queryParameters {
+            urlComponents?.queryItems = queryParameters.map { URLQueryItem(name: $0.key, value: $0.value) }
         }
+        
+        guard let url = urlComponents?.url else {
+            let attemptedURL = "\(baseURL)\(endpoint)" + (queryParameters?.map { "?\($0.key)=\($0.value)" }.joined(separator: "&") ?? "")
+            print("❌ Failed to create URL from: \(attemptedURL)")
+            span.setAttribute(key: "error.url", value: AttributeValue.string(attemptedURL))
+            throw URLError(.badURL)
+        }
+        
+        print("✅ Successfully created URL: \(url.absoluteString)")
         
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
@@ -98,33 +114,71 @@ class HTTPClient {
         let (data, response) = try await session.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw HTTPError.invalidResponse
+            throw URLError(.badServerResponse)
         }
         
         // Add response status to span
         span.setAttribute(key: "http.status_code", value: AttributeValue.int(httpResponse.statusCode))
         
         guard 200...299 ~= httpResponse.statusCode else {
-            throw HTTPError.statusCode(httpResponse.statusCode)
+            print("❌ HTTP Error: Status code \(httpResponse.statusCode)")
+            
+            // Record FULL error information in span
+            span.setAttribute(key: "error", value: AttributeValue.bool(true))
+            span.setAttribute(key: "http.status_code", value: AttributeValue.int(httpResponse.statusCode))
+            span.setAttribute(key: "http.status_text", value: AttributeValue.string(HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)))
+            
+            // Record ALL response headers
+            for (headerName, headerValue) in httpResponse.allHeaderFields {
+                if let name = headerName as? String, let value = headerValue as? String {
+                    span.setAttribute(key: "http.response.header.\(name.lowercased())", value: AttributeValue.string(value))
+                }
+            }
+            
+            // Build error message with status code and response body
+            var errorMessage = "HTTP \(httpResponse.statusCode) \(HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))"
+            
+            // Record FULL response body and add to error message
+            if let responseData = String(data: data, encoding: .utf8) {
+                print("📄 Response body: \(responseData)")
+                span.setAttribute(key: "http.response.body", value: AttributeValue.string(responseData))
+                span.setAttribute(key: "http.response.body_size", value: AttributeValue.int(data.count))
+                
+                // Add response body to error message if not empty
+                if !responseData.isEmpty {
+                    errorMessage += " - Response: \(responseData)"
+                }
+            } else {
+                span.setAttribute(key: "http.response.body_size", value: AttributeValue.int(data.count))
+                span.setAttribute(key: "http.response.body_encoding", value: AttributeValue.string("non-utf8"))
+            }
+            
+            // Record URL that failed
+            span.setAttribute(key: "http.url", value: AttributeValue.string(url.absoluteString))
+            
+            // Create a simple NSError with the descriptive message
+            let error = NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: [
+                NSLocalizedDescriptionKey: errorMessage
+            ])
+            span.recordException(error)
+            throw error
         }
         
-        return try JSONDecoder().decode(T.self, from: data)
+        print("✅ HTTP Success: Status code \(httpResponse.statusCode)")
+        
+        do {
+            let result = try JSONDecoder().decode(T.self, from: data)
+            print("✅ Successfully decoded response")
+            return result
+        } catch {
+            print("❌ JSON Decoding Error: \(error)")
+            if let responseData = String(data: data, encoding: .utf8) {
+                print("📄 Raw response: \(responseData)")
+            }
+            span.setAttribute(key: "error.json_decode", value: AttributeValue.string(error.localizedDescription))
+            span.recordException(error)
+            throw error
+        }
     }
 }
 
-enum HTTPError: Error {
-    case invalidURL
-    case invalidResponse
-    case statusCode(Int)
-    
-    var localizedDescription: String {
-        switch self {
-        case .invalidURL:
-            return "Invalid URL"
-        case .invalidResponse:
-            return "Invalid response"
-        case .statusCode(let code):
-            return "HTTP error: \(code)"
-        }
-    }
-}
