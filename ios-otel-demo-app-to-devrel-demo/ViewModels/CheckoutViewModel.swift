@@ -108,6 +108,8 @@ class CheckoutViewModel: ObservableObject {
             
             let response = try await checkoutService.placeOrder(request)
             orderResult = response
+            errorMessage = nil  // Clear any previous error messages
+            print("✅ Order placed successfully! Order ID: \(response.orderId)")
             span.status = .ok
             span.setAttribute(key: "app.checkout.order.id", value: AttributeValue.string(response.orderId))
             span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))

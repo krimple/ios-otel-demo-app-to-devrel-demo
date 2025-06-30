@@ -3,11 +3,11 @@ import SwiftUI
 struct CheckoutFormView: View {
     @StateObject var viewModel: CheckoutViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var showingConfirmation = false
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
+            VStack(spacing: 20) {
                     // Order Summary
                     orderSummarySection
                     
@@ -33,18 +33,10 @@ struct CheckoutFormView: View {
                     if let errorMessage = viewModel.errorMessage {
                         errorSection(errorMessage)
                     }
-                }
-                .padding()
             }
+            .padding()
             .navigationTitle("Checkout")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
             .onAppear {
                 HoneycombManager.shared.createEvent(name: "navigation.screen_viewed")
                     .addFields([
@@ -55,9 +47,20 @@ struct CheckoutFormView: View {
                     .send()
             }
         }
-        .navigationDestination(isPresented: .constant(viewModel.orderResult != nil)) {
+        .onChange(of: viewModel.orderResult) { _, newValue in
+            if newValue != nil {
+                showingConfirmation = true
+                print("🔄 Order result received, showing confirmation")
+            }
+        }
+        .fullScreenCover(isPresented: $showingConfirmation) {
             if let orderResult = viewModel.orderResult {
-                CheckoutConfirmationView(orderResult: orderResult)
+                NavigationStack {
+                    CheckoutConfirmationView(orderResult: orderResult)
+                }
+                .onAppear {
+                    print("🔄 Navigating to confirmation view for order: \(orderResult.orderId)")
+                }
             }
         }
     }
