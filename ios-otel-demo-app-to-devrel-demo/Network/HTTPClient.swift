@@ -63,6 +63,15 @@ class HTTPClient {
             // Log the specific error details
             print("❌ Request failed: \(error)")
             span.recordException(error)
+            
+            // Only add stacktrace for non-cancelled errors
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                // Skip stacktrace for cancelled requests to reduce noise
+                span.setAttribute(key: "error.cancelled", value: AttributeValue.bool(true))
+            } else {
+                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+            }
+            
             span.status = .error(description: error.localizedDescription)
             throw error
         }
@@ -161,6 +170,7 @@ class HTTPClient {
                 NSLocalizedDescriptionKey: errorMessage
             ])
             span.recordException(error)
+            span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
             throw error
         }
         
@@ -177,6 +187,7 @@ class HTTPClient {
             }
             span.setAttribute(key: "error.json_decode", value: AttributeValue.string(error.localizedDescription))
             span.recordException(error)
+            span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
             throw error
         }
     }

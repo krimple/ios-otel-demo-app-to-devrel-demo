@@ -41,7 +41,7 @@ class CheckoutViewModel: ObservableObject {
         guard shippingInfo.isComplete else { return }
         
         let tracer = HoneycombManager.shared.getTracer()
-        let span = tracer.spanBuilder(spanName: "calculateShippingCost").startSpan()
+        let span = tracer.spanBuilder(spanName: "calculateShippingCost").setActive(true).startSpan()
         
         span.setAttribute(key: "app.shipping.address.city", value: AttributeValue.string(shippingInfo.city))
         span.setAttribute(key: "app.shipping.address.state", value: AttributeValue.string(shippingInfo.state))
@@ -68,11 +68,19 @@ class CheckoutViewModel: ObservableObject {
             span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
             
         } catch {
-            span.recordException(error)
-            span.status = .error(description: error.localizedDescription)
             errorMessage = "Failed to calculate shipping: \(error.localizedDescription)"
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
+            
+            // Only add stacktrace for non-cancelled errors
+            if let urlError = error as? URLError, urlError.code != .cancelled {
+                span.recordException(error)
+                span.status = .error(description: error.localizedDescription)
+                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
+                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
+                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+            } else {
+                span.status = .ok
+                span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))
+            }
         }
         
         isLoadingShipping = false
@@ -82,7 +90,7 @@ class CheckoutViewModel: ObservableObject {
         guard canPlaceOrder else { return }
         
         let tracer = HoneycombManager.shared.getTracer()
-        let span = tracer.spanBuilder(spanName: "placeOrder").startSpan()
+        let span = tracer.spanBuilder(spanName: "placeOrder").setActive(true).startSpan()
         
         span.setAttribute(key: "app.user.currency", value: AttributeValue.string("USD"))
         span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(cartItems.count))
@@ -116,11 +124,19 @@ class CheckoutViewModel: ObservableObject {
             span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
             
         } catch {
-            span.recordException(error)
-            span.status = .error(description: error.localizedDescription)
             errorMessage = "Failed to place order: \(error.localizedDescription)"
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
+            
+            // Only add stacktrace for non-cancelled errors
+            if let urlError = error as? URLError, urlError.code != .cancelled {
+                span.recordException(error)
+                span.status = .error(description: error.localizedDescription)
+                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
+                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
+                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+            } else {
+                span.status = .ok
+                span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))
+            }
         }
         
         isProcessingOrder = false
