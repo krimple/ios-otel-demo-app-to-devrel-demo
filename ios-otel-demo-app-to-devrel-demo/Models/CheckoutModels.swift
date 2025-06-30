@@ -116,3 +116,13 @@ struct PaymentInfo {
     }
 }
 
+// MARK: - Shipping Quote Models
+struct ShippingQuoteRequest: Codable {
+    let address: Address
+    let items: [CheckoutItem]
+}
+
+struct ShippingQuoteResponse: Codable {
+    let cost: Money
+}
+

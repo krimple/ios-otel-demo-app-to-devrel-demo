@@ -14,6 +14,7 @@ class CheckoutViewModel: ObservableObject {
     
     private let checkoutService: CheckoutAPIService
     let cartItems: [CartItem]
+    weak var cartViewModel: CartViewModel?
     
     var subtotal: Double {
         cartItems.reduce(0) { $0 + $1.totalPrice }
@@ -32,9 +33,10 @@ class CheckoutViewModel: ObservableObject {
         shippingInfo.isComplete && paymentInfo.isComplete && !isProcessingOrder
     }
     
-    init(checkoutService: CheckoutAPIService, cartItems: [CartItem]) {
+    init(checkoutService: CheckoutAPIService, cartItems: [CartItem], cartViewModel: CartViewModel? = nil) {
         self.checkoutService = checkoutService
         self.cartItems = cartItems
+        self.cartViewModel = cartViewModel
     }
     
     func calculateShippingCost() async {

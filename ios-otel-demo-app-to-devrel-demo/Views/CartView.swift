@@ -94,7 +94,7 @@ struct CartView: View {
             }
             .sheet(isPresented: $showingCheckout) {
                 // Use the existing checkout service from environment
-                let checkoutViewModel = CheckoutViewModel(checkoutService: checkoutService, cartItems: cartViewModel.items)
+                let checkoutViewModel = CheckoutViewModel(checkoutService: checkoutService, cartItems: cartViewModel.items, cartViewModel: cartViewModel)
                 CheckoutFormView(viewModel: checkoutViewModel)
             }
         }

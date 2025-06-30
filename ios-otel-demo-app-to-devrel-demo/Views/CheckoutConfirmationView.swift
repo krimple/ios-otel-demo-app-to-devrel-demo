@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CheckoutConfirmationView: View {
     let orderResult: CheckoutResponse
+    let onDismiss: (Bool) -> Void
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -182,8 +183,8 @@ struct CheckoutConfirmationView: View {
                     ])
                     .send()
                 
-                // Dismiss all checkout views and return to shopping
-                dismiss()
+                // Call the onDismiss callback to handle navigation and cart clearing
+                onDismiss(true)
             }) {
                 HStack {
                     Image(systemName: "bag")
@@ -234,5 +235,5 @@ struct CheckoutConfirmationView: View {
         ]
     )
     
-    return CheckoutConfirmationView(orderResult: orderResult)
+    return CheckoutConfirmationView(orderResult: orderResult) { _ in }
 }

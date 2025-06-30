@@ -7,34 +7,36 @@ struct CheckoutFormView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                    // Order Summary
-                    orderSummarySection
-                    
-                    // Shipping Information
-                    shippingInfoSection
-                    
-                    // Shipping Cost
-                    if viewModel.shippingInfo.isComplete {
-                        shippingCostSection
-                    }
-                    
-                    // Payment Information
-                    if viewModel.canProceedToPayment {
-                        paymentInfoSection
-                    }
-                    
-                    // Place Order Button
-                    if viewModel.canPlaceOrder {
-                        placeOrderButton
-                    }
-                    
-                    // Error Message
-                    if let errorMessage = viewModel.errorMessage {
-                        errorSection(errorMessage)
-                    }
+            ScrollView {
+                VStack(spacing: 20) {
+                        // Order Summary
+                        orderSummarySection
+                        
+                        // Shipping Information
+                        shippingInfoSection
+                        
+                        // Shipping Cost
+                        if viewModel.shippingInfo.isComplete {
+                            shippingCostSection
+                        }
+                        
+                        // Payment Information
+                        if viewModel.canProceedToPayment {
+                            paymentInfoSection
+                        }
+                        
+                        // Place Order Button
+                        if viewModel.canPlaceOrder {
+                            placeOrderButton
+                        }
+                        
+                        // Error Message
+                        if let errorMessage = viewModel.errorMessage {
+                            errorSection(errorMessage)
+                        }
+                }
+                .padding()
             }
-            .padding()
             .navigationTitle("Checkout")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -56,7 +58,17 @@ struct CheckoutFormView: View {
         .fullScreenCover(isPresented: $showingConfirmation) {
             if let orderResult = viewModel.orderResult {
                 NavigationStack {
-                    CheckoutConfirmationView(orderResult: orderResult)
+                    CheckoutConfirmationView(orderResult: orderResult) { success in
+                        if success {
+                            // Clear cart when returning from successful checkout
+                            if let cartViewModel = viewModel.cartViewModel {
+                                cartViewModel.clearCart()
+                            }
+                        }
+                        // Dismiss both confirmation and checkout views
+                        showingConfirmation = false
+                        dismiss()
+                    }
                 }
                 .onAppear {
                     print("🔄 Navigating to confirmation view for order: \(orderResult.orderId)")
