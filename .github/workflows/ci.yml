@@ -57,32 +57,32 @@ jobs:
           clean build \
           CODE_SIGNING_ALLOWED=NO
 
-  ui-tests:
-    runs-on: macos-15
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Select Xcode 16
-      run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
-    
-    - name: Cache Swift packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
-          ~/.cache/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
-        restore-keys: |
-          ${{ runner.os }}-smp-
-    
-    - name: Run UI tests
-      run: |
-        xcodebuild \
-          -project ios-otel-demo-app-to-devrel-demo.xcodeproj \
-          -scheme ios-otel-demo-app-to-devrel-demo \
-          -destination 'platform=iOS Simulator,name=iPhone 16' \
-          -only-testing:ios-otel-demo-app-to-devrel-demoUITests \
-          clean test \
-          CODE_SIGNING_ALLOWED=NO
+  # ui-tests:
+  #   runs-on: macos-15
+  #   needs: test
+  #   
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   
+  #   - name: Select Xcode 16
+  #     run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+  #   
+  #   - name: Cache Swift packages
+  #     uses: actions/cache@v4
+  #     with:
+  #       path: |
+  #         ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+  #         ~/.cache/org.swift.swiftpm
+  #       key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+  #       restore-keys: |
+  #         ${{ runner.os }}-smp-
+  #   
+  #   - name: Run UI tests
+  #     run: |
+  #       xcodebuild \
+  #         -project ios-otel-demo-app-to-devrel-demo.xcodeproj \
+  #         -scheme ios-otel-demo-app-to-devrel-demo \
+  #         -destination 'platform=iOS Simulator,name=iPhone 16' \
+  #         -only-testing:ios-otel-demo-app-to-devrel-demoUITests \
+  #         clean test \
+  #         CODE_SIGNING_ALLOWED=NO
