@@ -19,8 +19,8 @@ class ProductDetailViewModel: ObservableObject {
     
     func loadProduct(id: String, excludeFromRecommendations: [String] = []) async {
         let tracer = HoneycombManager.shared.getTracer()
-        let span = tracer.spanBuilder(spanName: "ProductDetailViewModel.loadProduct")
-            .startSpan()
+        let span = tracer.spanBuilder(spanName: "loadProduct")
+            .setActive(true).startSpan()
         
         span.setAttribute(key: "app.product.id", value: AttributeValue.string(id))
         span.setAttribute(key: "app.view.model", value: AttributeValue.string("ProductDetailViewModel"))
@@ -50,9 +50,19 @@ class ProductDetailViewModel: ObservableObject {
             
         } catch {
             errorMessage = error.localizedDescription
-            span.recordException(error)
-            span.status = .error(description: error.localizedDescription)
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
+            
+            // Only add stacktrace for non-cancelled errors
+            if let urlError = error as? URLError, urlError.code != .cancelled {
+                span.recordException(error)
+                span.status = .error(description: error.localizedDescription)
+                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
+                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+            } else {
+                span.status = .ok
+                span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))
+            }
+            
+            
         }
         
         isLoading = false

@@ -9,7 +9,7 @@ class CartViewModel: ObservableObject {
     
     func addProduct(_ product: Product, quantity: Int = 1) {
         let tracer = HoneycombManager.shared.getTracer()
-        let span = tracer.spanBuilder(spanName: "CartViewModel.addProduct").startSpan()
+        let span = tracer.spanBuilder(spanName: "addProductToCart").setActive(true).startSpan()
         
         // Add span attributes
         span.setAttribute(key: "app.product.id", value: AttributeValue.string(product.id))
@@ -50,7 +50,7 @@ class CartViewModel: ObservableObject {
     
     func removeProduct(_ product: Product) {
         let tracer = HoneycombManager.shared.getTracer()
-        let span = tracer.spanBuilder(spanName: "CartViewModel.removeProduct").startSpan()
+        let span = tracer.spanBuilder(spanName: "CartViewModel.removeProduct").setActive(true).startSpan()
         
         span.setAttribute(key: "app.product.id", value: AttributeValue.string(product.id))
         span.setAttribute(key: "app.product.name", value: AttributeValue.string(product.name))
@@ -68,7 +68,7 @@ class CartViewModel: ObservableObject {
     
     func clearCart() {
         let tracer = HoneycombManager.shared.getTracer()
-        let span = tracer.spanBuilder(spanName: "CartViewModel.clearCart").startSpan()
+        let span = tracer.spanBuilder(spanName: "CartViewModel.clearCart").setActive(true).startSpan()
         
         let previousItemCount = items.count
         span.setAttribute(key: "app.cart.previous.item.count", value: AttributeValue.int(previousItemCount))
