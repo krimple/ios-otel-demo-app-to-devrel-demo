@@ -41,13 +41,13 @@ class CheckoutViewModel: ObservableObject {
         guard shippingInfo.isComplete else { return }
         
         let tracer = HoneycombManager.shared.getTracer()
-        let span = tracer.spanBuilder(spanName: "CheckoutViewModel.calculateShippingCost").startSpan()
+        let span = tracer.spanBuilder(spanName: "calculateShippingCost").startSpan()
         
-        span.setAttribute(key: "shipping_address.city", value: AttributeValue.string(shippingInfo.city))
-        span.setAttribute(key: "shipping_address.state", value: AttributeValue.string(shippingInfo.state))
-        span.setAttribute(key: "shipping_address.country", value: AttributeValue.string(shippingInfo.country))
-        span.setAttribute(key: "cart_items_count", value: AttributeValue.int(cartItems.count))
-        span.setAttribute(key: "cart_subtotal", value: AttributeValue.double(subtotal))
+        span.setAttribute(key: "app.shipping.address.city", value: AttributeValue.string(shippingInfo.city))
+        span.setAttribute(key: "app.shipping.address.state", value: AttributeValue.string(shippingInfo.state))
+        span.setAttribute(key: "app.shipping.address.country", value: AttributeValue.string(shippingInfo.country))
+        span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(cartItems.count))
+        span.setAttribute(key: "app.cart.subtotal", value: AttributeValue.double(subtotal))
         
         defer { span.end() }
         
@@ -63,27 +63,16 @@ class CheckoutViewModel: ObservableObject {
             
             shippingCost = shipping
             span.status = .ok
-            span.setAttribute(key: "shipping_cost", value: AttributeValue.double(shipping.doubleValue))
-            
-            HoneycombManager.shared.createEvent(name: "checkout.shipping_calculated")
-                .addFields([
-                    "shipping_cost": shipping.doubleValue,
-                    "cart_items": cartItems.count,
-                    "subtotal": subtotal
-                ])
-                .send()
+            span.setAttribute(key: "app.shipping.cost", value: AttributeValue.double(shipping.doubleValue))
+            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
+            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
             
         } catch {
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
             errorMessage = "Failed to calculate shipping: \(error.localizedDescription)"
-            
-            HoneycombManager.shared.createEvent(name: "checkout.shipping_calculation_failed")
-                .addFields([
-                    "error_message": error.localizedDescription,
-                    "cart_items": cartItems.count
-                ])
-                .send()
+            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
+            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
         }
         
         isLoadingShipping = false
@@ -93,13 +82,13 @@ class CheckoutViewModel: ObservableObject {
         guard canPlaceOrder else { return }
         
         let tracer = HoneycombManager.shared.getTracer()
-        let span = tracer.spanBuilder(spanName: "CheckoutViewModel.placeOrder").startSpan()
+        let span = tracer.spanBuilder(spanName: "placeOrder").startSpan()
         
-        span.setAttribute(key: "user_currency", value: AttributeValue.string("USD"))
-        span.setAttribute(key: "cart_items_count", value: AttributeValue.int(cartItems.count))
-        span.setAttribute(key: "order_total", value: AttributeValue.double(total))
-        span.setAttribute(key: "shipping_cost", value: AttributeValue.double(shippingCost?.doubleValue ?? 0.0))
-        span.setAttribute(key: "subtotal", value: AttributeValue.double(subtotal))
+        span.setAttribute(key: "app.user.currency", value: AttributeValue.string("USD"))
+        span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(cartItems.count))
+        span.setAttribute(key: "app.checkout.order.total", value: AttributeValue.double(total))
+        span.setAttribute(key: "app.checkout.shipping.cost", value: AttributeValue.double(shippingCost?.doubleValue ?? 0.0))
+        span.setAttribute(key: "app.checkout.subtotal", value: AttributeValue.double(subtotal))
         
         defer { span.end() }
         
@@ -120,29 +109,16 @@ class CheckoutViewModel: ObservableObject {
             let response = try await checkoutService.placeOrder(request)
             orderResult = response
             span.status = .ok
-            span.setAttribute(key: "order_number", value: AttributeValue.string(response.orderNumber))
-            
-            HoneycombManager.shared.createEvent(name: "checkout.order_placed")
-                .addFields([
-                    "order_number": response.orderNumber,
-                    "order_total": total,
-                    "cart_items": cartItems.count,
-                    "shipping_cost": shippingCost?.doubleValue ?? 0.0
-                ])
-                .send()
+            span.setAttribute(key: "app.checkout.order.id", value: AttributeValue.string(response.orderId))
+            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
+            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
             
         } catch {
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
             errorMessage = "Failed to place order: \(error.localizedDescription)"
-            
-            HoneycombManager.shared.createEvent(name: "checkout.order_failed")
-                .addFields([
-                    "error_message": error.localizedDescription,
-                    "cart_items": cartItems.count,
-                    "order_total": total
-                ])
-                .send()
+            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
+            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
         }
         
         isProcessingOrder = false

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import OpenTelemetryApi
 
 struct ContentView: View {
     @StateObject private var cartViewModel = CartViewModel()
@@ -113,12 +114,12 @@ struct OTelButton: View {
     var body: some View {
         Button(action: {
             // Record OpenTelemetry button tap
-            HoneycombManager.shared.createEvent(name: "ui.button_tapped")
-                .addFields([
-                "button_name": "otel_demo_button",
-                "screen": "main_menu"
-            ])
-                .send()
+            let tracer = HoneycombManager.shared.getTracer()
+            let span = tracer.spanBuilder(spanName: "ui.button.tap").startSpan()
+            span.setAttribute(key: "app.ui.button.name", value: AttributeValue.string("otel_demo_button"))
+            span.setAttribute(key: "app.screen.name", value: AttributeValue.string("main_menu"))
+            span.setAttribute(key: "app.interaction.type", value: AttributeValue.string("tap"))
+            span.end()
         }) {
             VStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")

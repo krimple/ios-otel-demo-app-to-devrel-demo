@@ -21,7 +21,7 @@ struct CheckoutResponse: Codable {
     let shippingAddress: Address
     let items: [OrderItem]
     
-    // Computed property for backward compatibility with UI
+    // Backward compatibility property
     var orderNumber: String {
         return orderId
     }
@@ -60,7 +60,7 @@ struct CreditCard: Codable {
 }
 
 struct CartItem: Identifiable, Codable {
-    let id = UUID()
+    var id = UUID()
     let product: Product
     var quantity: Int
     

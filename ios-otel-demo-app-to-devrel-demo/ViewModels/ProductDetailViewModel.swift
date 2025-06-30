@@ -22,8 +22,8 @@ class ProductDetailViewModel: ObservableObject {
         let span = tracer.spanBuilder(spanName: "ProductDetailViewModel.loadProduct")
             .startSpan()
         
-        span.setAttribute(key: "product_id", value: AttributeValue.string(id))
-        span.setAttribute(key: "view_model", value: AttributeValue.string("ProductDetailViewModel"))
+        span.setAttribute(key: "app.product.id", value: AttributeValue.string(id))
+        span.setAttribute(key: "app.view.model", value: AttributeValue.string("ProductDetailViewModel"))
         
         defer { span.end() }
         
@@ -44,32 +44,15 @@ class ProductDetailViewModel: ObservableObject {
             self.recommendations = loadedRecommendations
             
             span.status = .ok
-            span.setAttribute(key: "product_name", value: AttributeValue.string(loadedProduct.name))
-            span.setAttribute(key: "recommendation_count", value: AttributeValue.int(loadedRecommendations.count))
-            
-            // Record successful load event
-            HoneycombManager.shared.createEvent(name: "product_detail.loaded")
-                .addFields([
-                    "product_id": id,
-                    "product_name": loadedProduct.name,
-                    "recommendation_count": loadedRecommendations.count,
-                    "view_model": "ProductDetailViewModel"
-                ])
-                .send()
+            span.setAttribute(key: "app.product.name", value: AttributeValue.string(loadedProduct.name))
+            span.setAttribute(key: "app.recommendations.count", value: AttributeValue.int(loadedRecommendations.count))
+            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
             
         } catch {
             errorMessage = error.localizedDescription
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
-            
-            // Record error event
-            HoneycombManager.shared.createEvent(name: "product_detail.load_failed")
-                .addFields([
-                    "product_id": id,
-                    "error": error.localizedDescription,
-                    "view_model": "ProductDetailViewModel"
-                ])
-                .send()
+            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
         }
         
         isLoading = false
