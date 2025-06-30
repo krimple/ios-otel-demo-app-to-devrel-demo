@@ -14,7 +14,7 @@ struct CheckoutItem: Codable {
     let quantity: Int
 }
 
-struct CheckoutResponse: Codable {
+struct CheckoutResponse: Codable, Equatable {
     let orderId: String
     let shippingTrackingId: String
     let shippingCost: Money
@@ -39,12 +39,12 @@ struct CheckoutResponse: Codable {
     }
 }
 
-struct OrderItem: Codable {
+struct OrderItem: Codable, Equatable {
     let item: Product
     let cost: Money
 }
 
-struct Address: Codable {
+struct Address: Codable, Equatable {
     let streetAddress: String
     let city: String
     let state: String

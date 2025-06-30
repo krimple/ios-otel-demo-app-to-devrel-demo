@@ -1,6 +1,6 @@
 import Foundation
 
-struct Product: Codable, Identifiable {
+struct Product: Codable, Identifiable, Equatable {
     let id: String
     let name: String
     let description: String
@@ -9,7 +9,7 @@ struct Product: Codable, Identifiable {
     let categories: [String]
 }
 
-struct Money: Codable {
+struct Money: Codable, Equatable {
     let currencyCode: String
     let units: Int64
     let nanos: Int32
