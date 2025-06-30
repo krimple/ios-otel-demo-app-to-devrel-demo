@@ -27,8 +27,8 @@ class ProductListViewModel: ObservableObject {
         let span = tracer.spanBuilder(spanName: "ProductListViewModel.loadProducts").startSpan()
         
         // Add span attributes
-        span.setAttribute(key: "is_refresh", value: AttributeValue.bool(isRefresh))
-        span.setAttribute(key: "view_model", value: AttributeValue.string("ProductListViewModel"))
+        span.setAttribute(key: "app.operation.is.refresh", value: AttributeValue.bool(isRefresh))
+        span.setAttribute(key: "app.view.model", value: AttributeValue.string("ProductListViewModel"))
         
         defer { span.end() }
         
@@ -38,30 +38,14 @@ class ProductListViewModel: ObservableObject {
         do {
             products = try await productService.fetchProducts()
             span.status = .ok
-            span.setAttribute(key: "product_count", value: AttributeValue.int(products.count))
-            
-            // Record successful load event
-            HoneycombManager.shared.createEvent(name: "products.loaded")
-                .addFields([
-                    "product_count": products.count,
-                    "is_refresh": isRefresh,
-                    "view_model": "ProductListViewModel"
-                ])
-                .send()
+            span.setAttribute(key: "app.products.count", value: AttributeValue.int(products.count))
+            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
             
         } catch {
             errorMessage = error.localizedDescription
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
-            
-            // Record error event
-            HoneycombManager.shared.createEvent(name: "products.load_failed")
-                .addFields([
-                    "error": error.localizedDescription,
-                    "is_refresh": isRefresh,
-                    "view_model": "ProductListViewModel"
-                ])
-                .send()
+            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
         }
         
         isLoading = false

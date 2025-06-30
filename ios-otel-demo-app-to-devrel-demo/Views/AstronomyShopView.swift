@@ -1,4 +1,5 @@
 import SwiftUI
+import OpenTelemetryApi
 
 struct AstronomyShopView: View {
     @EnvironmentObject var cartViewModel: CartViewModel
@@ -151,13 +152,13 @@ struct ProductRowView: View {
                 cartViewModel.addProduct(product)
                 
                 // Record add to cart action
-                HoneycombManager.shared.createEvent(name: "ui.button_tapped")
-                    .addFields([
-                        "button_name": "add_to_cart",
-                        "screen": "product_list",
-                        "product_id": product.id
-                    ])
-                    .send()
+                let tracer = HoneycombManager.shared.getTracer()
+                let span = tracer.spanBuilder(spanName: "ui.button.tap").startSpan()
+                span.setAttribute(key: "app.ui.button.name", value: AttributeValue.string("add_to_cart"))
+                span.setAttribute(key: "app.screen.name", value: AttributeValue.string("product_list"))
+                span.setAttribute(key: "app.product.id", value: AttributeValue.string(product.id))
+                span.setAttribute(key: "app.interaction.type", value: AttributeValue.string("tap"))
+                span.end()
             }) {
                 Image(systemName: "plus.circle.fill")
                     .font(.title2)

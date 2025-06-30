@@ -12,10 +12,10 @@ class CartViewModel: ObservableObject {
         let span = tracer.spanBuilder(spanName: "CartViewModel.addProduct").startSpan()
         
         // Add span attributes
-        span.setAttribute(key: "product_id", value: AttributeValue.string(product.id))
-        span.setAttribute(key: "product_name", value: AttributeValue.string(product.name))
-        span.setAttribute(key: "quantity", value: AttributeValue.int(quantity))
-        span.setAttribute(key: "price_usd", value: AttributeValue.double(product.priceUsd.doubleValue))
+        span.setAttribute(key: "app.product.id", value: AttributeValue.string(product.id))
+        span.setAttribute(key: "app.product.name", value: AttributeValue.string(product.name))
+        span.setAttribute(key: "app.cart.item.quantity", value: AttributeValue.int(quantity))
+        span.setAttribute(key: "app.product.price.usd", value: AttributeValue.double(product.priceUsd.doubleValue))
         
         defer { span.end() }
         
@@ -25,11 +25,11 @@ class CartViewModel: ObservableObject {
         
         if product.id == "OLJCESPC7Z" && newTotal == 10 {
             // Trigger intentional crash for demo
-            span.setAttribute(key: "demo_trigger", value: AttributeValue.string("crash"))
+            span.setAttribute(key: "app.demo.trigger", value: AttributeValue.string("crash"))
             triggerCrashDemo()
         } else if product.id == "OLJCESPC7Z" && newTotal == 9 {
             // Trigger intentional hang for demo
-            span.setAttribute(key: "demo_trigger", value: AttributeValue.string("hang"))
+            span.setAttribute(key: "app.demo.trigger", value: AttributeValue.string("hang"))
             triggerHangDemo()
         }
         
@@ -42,41 +42,28 @@ class CartViewModel: ObservableObject {
         
         updateTotalCost()
         span.status = .ok
-        
-        // Record product added event
-        HoneycombManager.shared.createEvent(name: "cart.product_added")
-            .addFields([
-                "product_id": product.id,
-                "product_name": product.name,
-                "quantity": quantity,
-                "cart_total_items": items.count,
-                "cart_total_cost": totalCost
-            ])
-            .send()
+        span.setAttribute(key: "app.cart.total.items", value: AttributeValue.int(items.count))
+        span.setAttribute(key: "app.cart.total.cost", value: AttributeValue.double(totalCost))
+        span.setAttribute(key: "app.operation.type", value: AttributeValue.string("add_product"))
+        span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
     }
     
     func removeProduct(_ product: Product) {
         let tracer = HoneycombManager.shared.getTracer()
         let span = tracer.spanBuilder(spanName: "CartViewModel.removeProduct").startSpan()
         
-        span.setAttribute(key: "product_id", value: AttributeValue.string(product.id))
-        span.setAttribute(key: "product_name", value: AttributeValue.string(product.name))
+        span.setAttribute(key: "app.product.id", value: AttributeValue.string(product.id))
+        span.setAttribute(key: "app.product.name", value: AttributeValue.string(product.name))
         
         defer { span.end() }
         
         items.removeAll { $0.product.id == product.id }
         updateTotalCost()
         span.status = .ok
-        
-        // Record removal event
-        HoneycombManager.shared.createEvent(name: "cart.product_removed")
-            .addFields([
-                "product_id": product.id,
-                "product_name": product.name,
-                "cart_total_items": items.count,
-                "cart_total_cost": totalCost
-            ])
-            .send()
+        span.setAttribute(key: "app.cart.total.items", value: AttributeValue.int(items.count))
+        span.setAttribute(key: "app.cart.total.cost", value: AttributeValue.double(totalCost))
+        span.setAttribute(key: "app.operation.type", value: AttributeValue.string("remove_product"))
+        span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
     }
     
     func clearCart() {
@@ -84,20 +71,15 @@ class CartViewModel: ObservableObject {
         let span = tracer.spanBuilder(spanName: "CartViewModel.clearCart").startSpan()
         
         let previousItemCount = items.count
-        span.setAttribute(key: "previous_item_count", value: AttributeValue.int(previousItemCount))
+        span.setAttribute(key: "app.cart.previous.item.count", value: AttributeValue.int(previousItemCount))
         
         defer { span.end() }
         
         items.removeAll()
         updateTotalCost()
         span.status = .ok
-        
-        // Record cart clear event
-        HoneycombManager.shared.createEvent(name: "cart.cleared")
-            .addFields([
-                "previous_item_count": previousItemCount
-            ])
-            .send()
+        span.setAttribute(key: "app.operation.type", value: AttributeValue.string("clear_cart"))
+        span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
     }
     
     private func getTotalQuantity(for productId: String) -> Int {

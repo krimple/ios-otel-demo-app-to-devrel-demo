@@ -46,7 +46,7 @@ struct CheckoutConfirmationView: View {
                 HoneycombManager.shared.createEvent(name: "navigation.screen_viewed")
                     .addFields([
                         "screen_name": "checkout_confirmation",
-                        "order_number": orderResult.orderNumber,
+                        "order_number": orderResult.orderId,
                         "order_total": orderResult.total.doubleValue,
                         "items_count": orderResult.items.count
                     ])
@@ -67,7 +67,7 @@ struct CheckoutConfirmationView: View {
                         .font(.body)
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text(orderResult.orderNumber)
+                    Text(orderResult.orderId)
                         .font(.body)
                         .fontWeight(.medium)
                         .textSelection(.enabled)
@@ -177,7 +177,7 @@ struct CheckoutConfirmationView: View {
                 // Record continue shopping event
                 HoneycombManager.shared.createEvent(name: "checkout.continue_shopping")
                     .addFields([
-                        "order_number": orderResult.orderNumber,
+                        "order_number": orderResult.orderId,
                         "order_total": orderResult.total.doubleValue
                     ])
                     .send()
