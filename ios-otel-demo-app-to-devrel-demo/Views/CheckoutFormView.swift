@@ -59,12 +59,7 @@ struct CheckoutFormView: View {
             if let orderResult = viewModel.orderResult {
                 NavigationStack {
                     CheckoutConfirmationView(orderResult: orderResult) { success in
-                        if success {
-                            // Clear cart when returning from successful checkout
-                            if let cartViewModel = viewModel.cartViewModel {
-                                cartViewModel.clearCart()
-                            }
-                        }
+                        // Cart clearing is now handled in CheckoutViewModel after successful order
                         // Dismiss both confirmation and checkout views
                         showingConfirmation = false
                         dismiss()

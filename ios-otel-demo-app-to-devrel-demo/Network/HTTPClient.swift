@@ -116,6 +116,11 @@ class HTTPClient {
             request.setValue(value, forHTTPHeaderField: key)
         }
         
+        // Add Baggage header with session.id if sessionId is in query parameters
+        if let sessionId = queryParameters?["sessionId"] {
+            request.setValue("session.id=\(sessionId)", forHTTPHeaderField: "Baggage")
+        }
+        
         if let body = body {
             request.httpBody = body
         }
@@ -175,6 +180,14 @@ class HTTPClient {
         }
         
         print("✅ HTTP Success: Status code \(httpResponse.statusCode)")
+        
+        // Handle 204 No Content responses (like DELETE /cart)
+        if httpResponse.statusCode == 204 && data.isEmpty {
+            // For EmptyResponse, return an empty instance
+            if T.self == EmptyResponse.self {
+                return EmptyResponse() as! T
+            }
+        }
         
         do {
             let result = try JSONDecoder().decode(T.self, from: data)
