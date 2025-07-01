@@ -43,6 +43,7 @@ class CheckoutViewModel: ObservableObject {
     func calculateShippingCost() async {
         guard shippingInfo.isComplete else { return }
         
+        
         let tracer = HoneycombManager.shared.getTracer()
         let span = tracer.spanBuilder(spanName: "calculateShippingCost").setActive(true).startSpan()
         
@@ -59,11 +60,13 @@ class CheckoutViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            // Server-side cart handles shipping calculation - no need to pass items
+            // Convert cart items to checkout items for shipping calculation
+            let checkoutItems = cartItems.map { CheckoutItem(productId: $0.product.id, quantity: $0.quantity) }
+            
+            
             let shipping = try await checkoutService.getShippingCost(
                 address: shippingInfo.toAddress(),
-                items: [], // items come from server-side cart
-                sessionId: sessionManager.getSessionId()
+                items: checkoutItems
             )
             
             shippingCost = shipping
@@ -122,7 +125,6 @@ class CheckoutViewModel: ObservableObject {
             let response = try await checkoutService.placeOrder(request)
             orderResult = response
             errorMessage = nil  // Clear any previous error messages
-            print("✅ Order placed successfully! Order ID: \(response.orderId)")
             
             // Generate new session ID for next shopping session
             sessionManager.generateNewSessionId()

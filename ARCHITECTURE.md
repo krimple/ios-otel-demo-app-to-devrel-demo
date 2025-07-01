@@ -103,10 +103,18 @@ request.setValue("session.id=\(sessionId)", forHTTPHeaderField: "Baggage")
 - Form validation with computed properties
 - Async operations with proper error handling
 
+**Shipping Cost Calculation**:
+- **Automatic Triggering**: Shipping cost calculated when shipping form is complete
+- **API Integration**: Uses `/api/shipping` endpoint with JSON-encoded parameters  
+- **Parameter Format**: ItemList and address sent as URL-encoded JSON strings
+- **Real-time UI Updates**: Loading states and automatic cost display without manual triggers
+- **Error Handling**: Comprehensive error tracking via OpenTelemetry spans
+
 **Server-Side Integration**:
 - **No Items in Request**: Checkout requests don't include cart items (server retrieves from session)
 - **Session Correlation**: sessionId passed as query parameter and in Baggage headers
 - **Response Structure**: Complex nested JSON handled with `OrderItem` → `OrderItemDetail` → `Product`
+- **Direct Money Response**: Shipping endpoint returns Money object directly, not wrapped in response
 - **Session Reset**: New session ID generated after successful order completion
 
 ### Testing Strategy
@@ -145,6 +153,17 @@ request.setValue("session.id=\(sessionId)", forHTTPHeaderField: "Baggage")
 - **Problem**: iOS app was sending items in checkout request while React frontend doesn't
 - **Solution**: Remove items from CheckoutRequest and let server retrieve from session cart
 - **Benefit**: API consistency across platforms and simplified request structure
+
+### Automatic Shipping Calculation Implementation
+- **Problem**: Manual shipping calculation button created poor UX and required extra user interaction  
+- **Solution**: Automatic shipping cost calculation when shipping form becomes complete
+- **Implementation**: `onChange` listener triggers API call and updates UI with loading states
+- **Benefit**: Seamless user experience with real-time shipping cost display
+
+### Direct Money Response Handling
+- **Problem**: Expected shipping response wrapper but server returns Money object directly
+- **Solution**: Updated response parsing to handle Money directly from `/api/shipping` endpoint
+- **Benefit**: Simplified response handling and accurate cost calculation
 
 ### Default Test Data
 - **Problem**: Manual data entry slowed demo testing

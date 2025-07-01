@@ -12,9 +12,6 @@ class CheckoutAPIService: ObservableObject {
     func placeOrder(_ request: CheckoutRequest) async throws -> CheckoutResponse {
         let requestData = try JSONEncoder().encode(request)
         
-        print("🛒 CheckoutAPIService.placeOrder - Posting to /checkout")
-        print("🛒 SessionId: \(request.userId)")
-        print("🛒 Currency: \(request.userCurrency)")
         
         // Use the working checkout endpoint that React frontend uses
         return try await httpClient.request(
@@ -29,22 +26,33 @@ class CheckoutAPIService: ObservableObject {
         )
     }
     
-    func getShippingCost(address: Address, items: [CheckoutItem], sessionId: String) async throws -> Money {
-        print("🚚 CheckoutAPIService.getShippingCost - Getting shipping cost from /checkout")
-        print("🚚 SessionId: \(sessionId)")
+    func getShippingCost(address: Address, items: [CheckoutItem]) async throws -> Money {
         
-        // GET on /checkout with sessionId to check for shipping costs from server-side cart
-        let response: CheckoutResponse = try await httpClient.request(
-            endpoint: "/checkout",
+        // Create itemList JSON matching React frontend format
+        let itemListData = try JSONEncoder().encode(items)
+        let itemListString = String(data: itemListData, encoding: .utf8) ?? "[]"
+        
+        // Create address JSON
+        let addressData = try JSONEncoder().encode(address)
+        let addressString = String(data: addressData, encoding: .utf8) ?? "{}"
+        
+        
+        let queryParams = [
+            "itemList": itemListString,
+            "currencyCode": "USD",
+            "address": addressString
+        ]
+        
+        
+        // Use /shipping endpoint matching React frontend pattern
+        // The endpoint returns Money directly, not wrapped in a response object
+        let shippingCost: Money = try await httpClient.request(
+            endpoint: "/shipping",
             method: .GET,
-            queryParameters: [
-                "currencyCode": "USD",
-                "sessionId": sessionId
-            ],
+            queryParameters: queryParams,
             spanName: "CheckoutAPIService.getShippingCost"
         )
         
-        print("🚚 Got shipping cost: \(response.shippingCost.doubleValue)")
-        return response.shippingCost
+        return shippingCost
     }
 }

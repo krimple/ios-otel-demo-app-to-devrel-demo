@@ -60,8 +60,6 @@ class HTTPClient {
             span.status = .ok
             return result
         } catch {
-            // Log the specific error details
-            print("❌ Request failed: \(error)")
             span.recordException(error)
             
             // Only add stacktrace for non-cancelled errors
@@ -92,12 +90,10 @@ class HTTPClient {
         
         guard let url = urlComponents?.url else {
             let attemptedURL = "\(baseURL)\(endpoint)" + (queryParameters?.map { "?\($0.key)=\($0.value)" }.joined(separator: "&") ?? "")
-            print("❌ Failed to create URL from: \(attemptedURL)")
             span.setAttribute(key: "error.url", value: AttributeValue.string(attemptedURL))
             throw URLError(.badURL)
         }
         
-        print("✅ Successfully created URL: \(url.absoluteString)")
         
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
@@ -135,7 +131,6 @@ class HTTPClient {
         span.setAttribute(key: "http.status_code", value: AttributeValue.int(httpResponse.statusCode))
         
         guard 200...299 ~= httpResponse.statusCode else {
-            print("❌ HTTP Error: Status code \(httpResponse.statusCode)")
             
             // Record FULL error information in span
             span.setAttribute(key: "error", value: AttributeValue.bool(true))
@@ -154,7 +149,6 @@ class HTTPClient {
             
             // Record FULL response body and add to error message
             if let responseData = String(data: data, encoding: .utf8) {
-                print("📄 Response body: \(responseData)")
                 span.setAttribute(key: "http.response.body", value: AttributeValue.string(responseData))
                 span.setAttribute(key: "http.response.body_size", value: AttributeValue.int(data.count))
                 
@@ -179,7 +173,6 @@ class HTTPClient {
             throw error
         }
         
-        print("✅ HTTP Success: Status code \(httpResponse.statusCode)")
         
         // Handle 204 No Content responses (like DELETE /cart)
         if httpResponse.statusCode == 204 && data.isEmpty {
@@ -191,12 +184,10 @@ class HTTPClient {
         
         do {
             let result = try JSONDecoder().decode(T.self, from: data)
-            print("✅ Successfully decoded response")
             return result
         } catch {
-            print("❌ JSON Decoding Error: \(error)")
             if let responseData = String(data: data, encoding: .utf8) {
-                print("📄 Raw response: \(responseData)")
+                // Response data will be recorded in span attributes for debugging
             }
             span.setAttribute(key: "error.json_decode", value: AttributeValue.string(error.localizedDescription))
             span.recordException(error)

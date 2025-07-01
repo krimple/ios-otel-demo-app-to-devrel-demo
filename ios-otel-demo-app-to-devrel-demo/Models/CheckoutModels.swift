@@ -132,7 +132,3 @@ struct ShippingQuoteRequest: Codable {
     let items: [CheckoutItem]
 }
 
-struct ShippingQuoteResponse: Codable {
-    let cost: Money
-}
-

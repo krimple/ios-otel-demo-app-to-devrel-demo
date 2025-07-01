@@ -47,12 +47,18 @@ struct CheckoutFormView: View {
                         "cart_total": viewModel.subtotal
                     ])
                     .send()
+                
+                // Auto-calculate shipping if form is already complete
+                if viewModel.shippingInfo.isComplete && viewModel.shippingCost == nil {
+                    Task {
+                        await viewModel.calculateShippingCost()
+                    }
+                }
             }
         }
         .onChange(of: viewModel.orderResult) { _, newValue in
             if newValue != nil {
                 showingConfirmation = true
-                print("🔄 Order result received, showing confirmation")
             }
         }
         .fullScreenCover(isPresented: $showingConfirmation) {
@@ -64,9 +70,6 @@ struct CheckoutFormView: View {
                         showingConfirmation = false
                         dismiss()
                     }
-                }
-                .onAppear {
-                    print("🔄 Navigating to confirmation view for order: \(orderResult.orderId)")
                 }
             }
         }
@@ -173,14 +176,13 @@ struct CheckoutFormView: View {
                 }
             }
             
-            if viewModel.shippingInfo.isComplete {
-                Button("Calculate Shipping") {
+            // Automatically calculate shipping when form is complete
+            .onChange(of: viewModel.shippingInfo.isComplete) { isComplete in
+                if isComplete {
                     Task {
                         await viewModel.calculateShippingCost()
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.isLoadingShipping)
             }
         }
         .padding()
