@@ -6,25 +6,17 @@ import OpenTelemetryApi
 class SessionManager: ObservableObject {
     static let shared = SessionManager()
     
-    private let userDefaults = UserDefaults.standard
-    private let sessionIdKey = "cart_session_id"
-    
     @Published private(set) var currentSessionId: String
     
     private init() {
-        // Load existing session ID or create new one
-        if let existingSessionId = userDefaults.string(forKey: sessionIdKey) {
-            self.currentSessionId = existingSessionId
-        } else {
-            self.currentSessionId = UUID().uuidString
-            self.saveSessionId()
-        }
+        // Use Honeycomb's session ID instead of generating our own
+        self.currentSessionId = Honeycomb.currentSession()?.id ?? UUID().uuidString
         
         // Record session initialization
         HoneycombManager.shared.createEvent(name: "session.initialized")
             .addFields([
                 "session_id": currentSessionId,
-                "is_new_session": userDefaults.string(forKey: sessionIdKey) == nil
+                "is_honeycomb_session": Honeycomb.currentSession() != nil
             ])
             .send()
     }
@@ -40,8 +32,7 @@ class SessionManager: ObservableObject {
         let span = tracer.spanBuilder(spanName: "SessionManager.generateNewSessionId").setActive(true).startSpan()
         
         let previousSessionId = currentSessionId
-        currentSessionId = UUID().uuidString
-        saveSessionId()
+        currentSessionId = Honeycomb.currentSession()?.id ?? UUID().uuidString
         
         span.setAttribute(key: "app.session.previous_id", value: AttributeValue.string(previousSessionId))
         span.setAttribute(key: "app.session.new_id", value: AttributeValue.string(currentSessionId))
@@ -59,7 +50,4 @@ class SessionManager: ObservableObject {
             .send()
     }
     
-    private func saveSessionId() {
-        userDefaults.set(currentSessionId, forKey: sessionIdKey)
-    }
 }

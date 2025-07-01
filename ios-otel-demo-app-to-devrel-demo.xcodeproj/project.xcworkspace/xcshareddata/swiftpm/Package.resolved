@@ -16,7 +16,7 @@
       "location" : "https://github.com/honeycombio/honeycomb-opentelemetry-swift",
       "state" : {
         "revision" : "81b89fccc3fe36d90ad7bd4953861e6e33866129",
-        "version" : "0.0.13"
+        "version" : "0.0.14"
       }
     },
     {
