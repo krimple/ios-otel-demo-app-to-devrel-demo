@@ -6,12 +6,16 @@ struct CheckoutRequest: Codable {
     let address: Address
     let email: String
     let creditCard: CreditCard
-    let items: [CheckoutItem]
+    // Note: items are NOT included - they come from the server-side cart
 }
 
 struct CheckoutItem: Codable {
     let productId: String
     let quantity: Int
+}
+
+struct CheckoutSession: Codable {
+    let orderId: String
 }
 
 struct CheckoutResponse: Codable, Equatable {
@@ -40,8 +44,14 @@ struct CheckoutResponse: Codable, Equatable {
 }
 
 struct OrderItem: Codable, Equatable {
-    let item: Product
+    let item: OrderItemDetail
     let cost: Money
+}
+
+struct OrderItemDetail: Codable, Equatable {
+    let productId: String
+    let quantity: Int
+    let product: Product
 }
 
 struct Address: Codable, Equatable {
@@ -114,5 +124,11 @@ struct PaymentInfo {
             creditCardExpirationMonth: creditCardExpirationMonth
         )
     }
+}
+
+// MARK: - Shipping Quote Models
+struct ShippingQuoteRequest: Codable {
+    let address: Address
+    let items: [CheckoutItem]
 }
 

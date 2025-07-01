@@ -157,14 +157,13 @@ class HTTPClientConsistencyTests: XCTestCase {
             userCurrency: "USD",
             address: address,
             email: "test@example.com",
-            creditCard: creditCard,
-            items: checkoutItems
+            creditCard: creditCard
         )
         
         XCTAssertEqual(checkoutRequest.userId, "test-user")
         XCTAssertEqual(checkoutRequest.userCurrency, "USD")
-        XCTAssertEqual(checkoutRequest.items.count, 1)
-        XCTAssertEqual(checkoutRequest.items.first?.productId, "test-product")
+        XCTAssertEqual(checkoutRequest.address.streetAddress, "123 Main St")
+        XCTAssertEqual(checkoutRequest.email, "test@example.com")
     }
     
     func testCheckoutResponseComputation() {

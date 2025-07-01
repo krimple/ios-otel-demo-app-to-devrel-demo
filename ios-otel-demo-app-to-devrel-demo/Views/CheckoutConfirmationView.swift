@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CheckoutConfirmationView: View {
     let orderResult: CheckoutResponse
+    let onDismiss: (Bool) -> Void
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -139,14 +140,22 @@ struct CheckoutConfirmationView: View {
                 .font(.headline)
                 .fontWeight(.semibold)
             
-            ForEach(orderResult.items, id: \.item.id) { orderItem in
+            ForEach(orderResult.items, id: \.item.product.id) { orderItem in
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(orderItem.item.name)
-                            .font(.body)
-                            .fontWeight(.medium)
+                        HStack {
+                            Text(orderItem.item.product.name)
+                                .font(.body)
+                                .fontWeight(.medium)
+                            
+                            Spacer()
+                            
+                            Text("Qty: \(orderItem.item.quantity)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                         
-                        Text(orderItem.item.description)
+                        Text(orderItem.item.product.description)
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .lineLimit(2)
@@ -161,7 +170,7 @@ struct CheckoutConfirmationView: View {
                 }
                 .padding(.vertical, 4)
                 
-                if orderItem.item.id != orderResult.items.last?.item.id {
+                if orderItem.item.product.id != orderResult.items.last?.item.product.id {
                     Divider()
                 }
             }
@@ -182,8 +191,8 @@ struct CheckoutConfirmationView: View {
                     ])
                     .send()
                 
-                // Dismiss all checkout views and return to shopping
-                dismiss()
+                // Call the onDismiss callback to handle navigation and cart clearing
+                onDismiss(true)
             }) {
                 HStack {
                     Image(systemName: "bag")
@@ -228,11 +237,15 @@ struct CheckoutConfirmationView: View {
         ),
         items: [
             OrderItem(
-                item: sampleProduct,
+                item: OrderItemDetail(
+                    productId: "1",
+                    quantity: 2,
+                    product: sampleProduct
+                ),
                 cost: Money(currencyCode: "USD", units: 299, nanos: 990000000)
             )
         ]
     )
     
-    return CheckoutConfirmationView(orderResult: orderResult)
+    return CheckoutConfirmationView(orderResult: orderResult) { _ in }
 }

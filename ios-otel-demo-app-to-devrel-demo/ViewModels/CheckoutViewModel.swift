@@ -13,7 +13,9 @@ class CheckoutViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     private let checkoutService: CheckoutAPIService
-    let cartItems: [CartItem]
+    private let sessionManager = SessionManager.shared
+    let cartItems: [CartItem] // Keep for backwards compatibility, but will be removed
+    weak var cartViewModel: CartViewModel?
     
     var subtotal: Double {
         cartItems.reduce(0) { $0 + $1.totalPrice }
@@ -32,13 +34,15 @@ class CheckoutViewModel: ObservableObject {
         shippingInfo.isComplete && paymentInfo.isComplete && !isProcessingOrder
     }
     
-    init(checkoutService: CheckoutAPIService, cartItems: [CartItem]) {
+    init(checkoutService: CheckoutAPIService, cartItems: [CartItem], cartViewModel: CartViewModel? = nil) {
         self.checkoutService = checkoutService
         self.cartItems = cartItems
+        self.cartViewModel = cartViewModel
     }
     
     func calculateShippingCost() async {
         guard shippingInfo.isComplete else { return }
+        
         
         let tracer = HoneycombManager.shared.getTracer()
         let span = tracer.spanBuilder(spanName: "calculateShippingCost").setActive(true).startSpan()
@@ -46,6 +50,7 @@ class CheckoutViewModel: ObservableObject {
         span.setAttribute(key: "app.shipping.address.city", value: AttributeValue.string(shippingInfo.city))
         span.setAttribute(key: "app.shipping.address.state", value: AttributeValue.string(shippingInfo.state))
         span.setAttribute(key: "app.shipping.address.country", value: AttributeValue.string(shippingInfo.country))
+        span.setAttribute(key: "app.user.session_id", value: AttributeValue.string(sessionManager.getSessionId()))
         span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(cartItems.count))
         span.setAttribute(key: "app.cart.subtotal", value: AttributeValue.double(subtotal))
         
@@ -55,7 +60,10 @@ class CheckoutViewModel: ObservableObject {
         errorMessage = nil
         
         do {
+            // Convert cart items to checkout items for shipping calculation
             let checkoutItems = cartItems.map { CheckoutItem(productId: $0.product.id, quantity: $0.quantity) }
+            
+            
             let shipping = try await checkoutService.getShippingCost(
                 address: shippingInfo.toAddress(),
                 items: checkoutItems
@@ -93,6 +101,7 @@ class CheckoutViewModel: ObservableObject {
         let span = tracer.spanBuilder(spanName: "placeOrder").setActive(true).startSpan()
         
         span.setAttribute(key: "app.user.currency", value: AttributeValue.string("USD"))
+        span.setAttribute(key: "app.user.session_id", value: AttributeValue.string(sessionManager.getSessionId()))
         span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(cartItems.count))
         span.setAttribute(key: "app.checkout.order.total", value: AttributeValue.double(total))
         span.setAttribute(key: "app.checkout.shipping.cost", value: AttributeValue.double(shippingCost?.doubleValue ?? 0.0))
@@ -104,20 +113,27 @@ class CheckoutViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            let checkoutItems = cartItems.map { CheckoutItem(productId: $0.product.id, quantity: $0.quantity) }
             let request = CheckoutRequest(
-                userId: "demo-user-\(UUID().uuidString)",
+                userId: sessionManager.getSessionId(), // Use session ID as user ID for cart correlation
                 userCurrency: "USD",
                 address: shippingInfo.toAddress(),
                 email: shippingInfo.email,
-                creditCard: paymentInfo.toCreditCard(),
-                items: checkoutItems
+                creditCard: paymentInfo.toCreditCard()
+                // items come from server-side cart, not passed in request
             )
             
             let response = try await checkoutService.placeOrder(request)
             orderResult = response
             errorMessage = nil  // Clear any previous error messages
-            print("✅ Order placed successfully! Order ID: \(response.orderId)")
+            
+            // Generate new session ID for next shopping session
+            sessionManager.generateNewSessionId()
+            
+            // Clear cart on successful order (this will reload with new session)
+            if let cartViewModel = cartViewModel {
+                await cartViewModel.loadCart()
+            }
+            
             span.status = .ok
             span.setAttribute(key: "app.checkout.order.id", value: AttributeValue.string(response.orderId))
             span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))

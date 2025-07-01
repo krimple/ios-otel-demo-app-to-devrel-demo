@@ -7,34 +7,36 @@ struct CheckoutFormView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                    // Order Summary
-                    orderSummarySection
-                    
-                    // Shipping Information
-                    shippingInfoSection
-                    
-                    // Shipping Cost
-                    if viewModel.shippingInfo.isComplete {
-                        shippingCostSection
-                    }
-                    
-                    // Payment Information
-                    if viewModel.canProceedToPayment {
-                        paymentInfoSection
-                    }
-                    
-                    // Place Order Button
-                    if viewModel.canPlaceOrder {
-                        placeOrderButton
-                    }
-                    
-                    // Error Message
-                    if let errorMessage = viewModel.errorMessage {
-                        errorSection(errorMessage)
-                    }
+            ScrollView {
+                VStack(spacing: 20) {
+                        // Order Summary
+                        orderSummarySection
+                        
+                        // Shipping Information
+                        shippingInfoSection
+                        
+                        // Shipping Cost
+                        if viewModel.shippingInfo.isComplete {
+                            shippingCostSection
+                        }
+                        
+                        // Payment Information
+                        if viewModel.canProceedToPayment {
+                            paymentInfoSection
+                        }
+                        
+                        // Place Order Button
+                        if viewModel.canPlaceOrder {
+                            placeOrderButton
+                        }
+                        
+                        // Error Message
+                        if let errorMessage = viewModel.errorMessage {
+                            errorSection(errorMessage)
+                        }
+                }
+                .padding()
             }
-            .padding()
             .navigationTitle("Checkout")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -45,21 +47,29 @@ struct CheckoutFormView: View {
                         "cart_total": viewModel.subtotal
                     ])
                     .send()
+                
+                // Auto-calculate shipping if form is already complete
+                if viewModel.shippingInfo.isComplete && viewModel.shippingCost == nil {
+                    Task {
+                        await viewModel.calculateShippingCost()
+                    }
+                }
             }
         }
         .onChange(of: viewModel.orderResult) { _, newValue in
             if newValue != nil {
                 showingConfirmation = true
-                print("🔄 Order result received, showing confirmation")
             }
         }
         .fullScreenCover(isPresented: $showingConfirmation) {
             if let orderResult = viewModel.orderResult {
                 NavigationStack {
-                    CheckoutConfirmationView(orderResult: orderResult)
-                }
-                .onAppear {
-                    print("🔄 Navigating to confirmation view for order: \(orderResult.orderId)")
+                    CheckoutConfirmationView(orderResult: orderResult) { success in
+                        // Cart clearing is now handled in CheckoutViewModel after successful order
+                        // Dismiss both confirmation and checkout views
+                        showingConfirmation = false
+                        dismiss()
+                    }
                 }
             }
         }
@@ -166,14 +176,13 @@ struct CheckoutFormView: View {
                 }
             }
             
-            if viewModel.shippingInfo.isComplete {
-                Button("Calculate Shipping") {
+            // Automatically calculate shipping when form is complete
+            .onChange(of: viewModel.shippingInfo.isComplete) { isComplete in
+                if isComplete {
                     Task {
                         await viewModel.calculateShippingCost()
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.isLoadingShipping)
             }
         }
         .padding()

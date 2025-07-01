@@ -9,9 +9,9 @@ import SwiftUI
 import OpenTelemetryApi
 
 struct ContentView: View {
-    @StateObject private var cartViewModel = CartViewModel()
+    @StateObject private var cartViewModel = CartViewModel.shared
     
-    // Initialize services
+    // Initialize services - these will be static/shared
     private let httpClient: HTTPClient
     private let productService: ProductAPIService
     private let checkoutService: CheckoutAPIService
@@ -31,6 +31,9 @@ struct ContentView: View {
         self.productService = ProductAPIService(httpClient: httpClient)
         self.checkoutService = CheckoutAPIService(httpClient: httpClient)
         self.recommendationService = RecommendationService(httpClient: httpClient)
+        
+        // Initialize the shared cart service
+        CartViewModel.initializeShared(httpClient: httpClient, productService: productService)
     }
     
     var body: some View {

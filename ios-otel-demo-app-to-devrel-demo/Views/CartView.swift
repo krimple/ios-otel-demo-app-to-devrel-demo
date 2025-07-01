@@ -8,7 +8,18 @@ struct CartView: View {
     var body: some View {
         NavigationView {
             Group {
-                if cartViewModel.items.isEmpty {
+                if cartViewModel.isLoading {
+                    VStack {
+                        ProgressView("Loading cart...")
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(1.2)
+                        Text("Fetching your cart from server")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.top)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if cartViewModel.items.isEmpty {
                     VStack {
                         Image(systemName: "cart")
                             .font(.system(size: 80))
@@ -20,6 +31,14 @@ struct CartView: View {
                             .font(.body)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
+                        
+                        if let errorMessage = cartViewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                                .padding(.top)
+                                .multilineTextAlignment(.center)
+                        }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -27,6 +46,27 @@ struct CartView: View {
                         List {
                             ForEach(cartViewModel.items) { item in
                                 CartItemRow(item: item, cartViewModel: cartViewModel)
+                            }
+                            
+                            // Error message section
+                            if let errorMessage = cartViewModel.errorMessage {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .foregroundColor(.orange)
+                                        Text("Notice")
+                                            .font(.headline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.orange)
+                                    }
+                                    
+                                    Text(errorMessage)
+                                        .font(.caption)
+                                        .foregroundColor(.primary)
+                                }
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(8)
                             }
                             
                             // Total section
@@ -41,6 +81,9 @@ struct CartView: View {
                                     .foregroundColor(.blue)
                             }
                             .padding(.vertical)
+                        }
+                        .refreshable {
+                            cartViewModel.refreshCart()
                         }
                         
                         // Checkout button
@@ -94,7 +137,7 @@ struct CartView: View {
             }
             .sheet(isPresented: $showingCheckout) {
                 // Use the existing checkout service from environment
-                let checkoutViewModel = CheckoutViewModel(checkoutService: checkoutService, cartItems: cartViewModel.items)
+                let checkoutViewModel = CheckoutViewModel(checkoutService: checkoutService, cartItems: cartViewModel.items, cartViewModel: cartViewModel)
                 CheckoutFormView(viewModel: checkoutViewModel)
             }
         }
@@ -143,11 +186,14 @@ struct CartItemRow: View {
             
             Spacer()
             
-            Button(action: {
-                cartViewModel.removeProduct(item.product)
-            }) {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
+            // Individual item removal not supported by server cart API
+            VStack {
+                Text("Qty: \(item.quantity)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Text("Read-only")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 4)
