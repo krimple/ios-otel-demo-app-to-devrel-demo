@@ -15,10 +15,15 @@ This iOS app demonstrates OpenTelemetry instrumentation patterns with Honeycomb 
 - **Status Code Preservation**: HTTP errors maintain actual status codes (e.g., "HTTP 504 Gateway Timeout") instead of generic error abstractions
 - **Response Body Capture**: Full response bodies are logged to spans for debugging
 - **Trace Propagation**: Automatic OpenTelemetry trace header injection for distributed tracing
+- **Baggage Header Support**: Session correlation via `Baggage: session.id=<uuid>` headers
+- **HTTP 204 Handling**: Proper handling of No Content responses for DELETE operations
 
 ```swift
 // Example error with full details
 "HTTP 504 Gateway Timeout - Response: {\"error\": \"upstream timeout\"}"
+
+// Baggage header for session correlation
+request.setValue("session.id=\(sessionId)", forHTTPHeaderField: "Baggage")
 ```
 
 ### OpenTelemetry Instrumentation
@@ -47,20 +52,36 @@ This iOS app demonstrates OpenTelemetry instrumentation patterns with Honeycomb 
 ### Service Layer Architecture
 
 **Pattern**: Service classes handle API communication and business logic
-- `ProductService`: Product catalog operations
-- `CartService`: Shopping cart management  
+- `ProductAPIService`: Product catalog operations
+- `CartAPIService`: Server-side shopping cart management with session correlation
 - `CheckoutAPIService`: Checkout flow operations
 
 **Shared HTTPClient**: All services receive the same HTTPClient instance to ensure consistent configuration and telemetry.
+
+### Session Management & Cart Architecture
+
+**SessionManager**: `Utils/SessionManager.swift`
+- **UUID Generation**: Creates unique session identifiers for cart correlation
+- **Persistence**: Session IDs stored in UserDefaults for app restart continuity  
+- **Session Reset**: New session ID generated after successful order completion
+- **OpenTelemetry Integration**: Session events tracked for observability
+
+**Server-Side Cart**: `Services/CartAPIService.swift`
+- **Session Correlation**: Uses sessionId query parameter and Baggage headers
+- **API Endpoints**: POST /cart (add items), GET /cart (retrieve), DELETE /cart (clear)
+- **Error Handling**: 404 responses treated as empty cart for new sessions
+- **Product Resolution**: Server cart items resolved to full product details via ProductAPIService
 
 ### Data Models
 
 **Location**: `Models/`
 
 - **API Models**: Direct JSON mappings for server communication (`CheckoutRequest`, `CheckoutResponse`)
+- **Server Cart Models**: `ServerCartModels.swift` - API structures for cart operations (`ServerCart`, `AddItemRequest`)
 - **UI Models**: Form-friendly structures with validation (`ShippingInfo`, `PaymentInfo`)
 - **Computed Properties**: Derived data like totals and formatted prices
 - **Default Values**: Pre-filled test data for easier demo testing
+- **Nested Response Handling**: Complex server response structures like `OrderItem` with nested `OrderItemDetail`
 
 ### Error Recovery Patterns
 
@@ -82,6 +103,12 @@ This iOS app demonstrates OpenTelemetry instrumentation patterns with Honeycomb 
 - Form validation with computed properties
 - Async operations with proper error handling
 
+**Server-Side Integration**:
+- **No Items in Request**: Checkout requests don't include cart items (server retrieves from session)
+- **Session Correlation**: sessionId passed as query parameter and in Baggage headers
+- **Response Structure**: Complex nested JSON handled with `OrderItem` → `OrderItemDetail` → `Product`
+- **Session Reset**: New session ID generated after successful order completion
+
 ### Testing Strategy
 
 **Unit Tests**: `HTTPClientConsistencyTests.swift`
@@ -94,6 +121,16 @@ This iOS app demonstrates OpenTelemetry instrumentation patterns with Honeycomb 
 
 ## Key Decisions & Rationale
 
+### Server-Side Cart Architecture
+- **Problem**: Client-side cart storage inconsistent with React frontend and limited observability
+- **Solution**: Implement server-side cart with sessionId correlation matching React frontend patterns
+- **Benefit**: Consistent cross-platform behavior, better observability, and simplified state management
+
+### Session Management via Baggage Headers
+- **Problem**: Cart operations needed correlation without authentication
+- **Solution**: Use OpenTelemetry Baggage headers with `session.id=<uuid>` format
+- **Benefit**: Distributed tracing correlation and session-based cart operations
+
 ### Error Handling Simplification
 - **Problem**: Custom error enums were creating confusing messages like "HTTPError error 0"
 - **Solution**: Use `NSError` with descriptive messages containing actual HTTP status codes and response bodies
@@ -103,6 +140,11 @@ This iOS app demonstrates OpenTelemetry instrumentation patterns with Honeycomb 
 - **Problem**: Multiple HTTPClient instances caused configuration inconsistencies
 - **Solution**: Dependency injection of shared HTTPClient instance
 - **Benefit**: Consistent telemetry and configuration across all network operations
+
+### Checkout Request Format Alignment
+- **Problem**: iOS app was sending items in checkout request while React frontend doesn't
+- **Solution**: Remove items from CheckoutRequest and let server retrieve from session cart
+- **Benefit**: API consistency across platforms and simplified request structure
 
 ### Default Test Data
 - **Problem**: Manual data entry slowed demo testing
@@ -143,8 +185,17 @@ This iOS app demonstrates OpenTelemetry instrumentation patterns with Honeycomb 
 ios-otel-demo-app-to-devrel-demo/
 ├── .github/workflows/   # CI/CD configuration
 ├── Models/              # Data structures and API models
+│   ├── CheckoutModels.swift     # Checkout flow data structures
+│   ├── Product.swift            # Product and Money models
+│   └── ServerCartModels.swift   # Server cart API models
 ├── Network/             # HTTP client and networking
+│   └── HTTPClient.swift         # Main HTTP client with trace propagation
 ├── Services/            # Business logic services
+│   ├── CartAPIService.swift     # Server-side cart operations
+│   ├── CheckoutAPIService.swift # Checkout flow API calls
+│   └── ProductAPIService.swift  # Product catalog operations
+├── Utils/               # Utility classes
+│   └── SessionManager.swift     # Session ID generation and persistence
 ├── Views/               # SwiftUI view components
 ├── ViewModels/          # MVVM view models
 ├── Tests/               # Unit and UI test suites
