@@ -19,16 +19,14 @@ class HoneycombManager {
             .build()
         
         try Honeycomb.configure(options: options)
-        
-        print("Honeycomb initialized for service: \(config.serviceName)")
     }
     
     func getTracer() -> Tracer {
-        return OpenTelemetry.instance.tracerProvider.get(instrumentationName: "ios.demo.app", instrumentationVersion: "1.0.0")
+        return OpenTelemetry.instance.tracerProvider.get(instrumentationName: "ios.demo.app", instrumentationVersion: "1.0.1")
     }
     
     func getMeter() -> Meter {
-        return OpenTelemetry.instance.meterProvider.get(instrumentationName: "ios.demo.app", instrumentationVersion: "1.0.0")
+        return OpenTelemetry.instance.meterProvider.get(instrumentationName: "ios.demo.app", instrumentationVersion: "1.0.1")
     }
     
     // For field-based events, we'll use a simple event builder pattern

@@ -46,7 +46,7 @@ class ProductDetailViewModel: ObservableObject {
             span.status = .ok
             span.setAttribute(key: "app.product.name", value: AttributeValue.string(loadedProduct.name))
             span.setAttribute(key: "app.recommendations.count", value: AttributeValue.int(loadedRecommendations.count))
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
+   
             
         } catch {
             errorMessage = error.localizedDescription
@@ -61,8 +61,6 @@ class ProductDetailViewModel: ObservableObject {
                 span.status = .ok
                 span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))
             }
-            
-            
         }
         
         isLoading = false

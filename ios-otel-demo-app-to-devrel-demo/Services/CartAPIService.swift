@@ -17,7 +17,6 @@ class CartAPIService: ObservableObject {
         
         span.setAttribute(key: "app.product.id", value: AttributeValue.string(productId))
         span.setAttribute(key: "app.cart.item.quantity", value: AttributeValue.int(quantity))
-        span.setAttribute(key: "app.user.session_id", value: AttributeValue.string(userId))
         
         defer { span.end() }
         
@@ -57,12 +56,9 @@ class CartAPIService: ObservableObject {
         let tracer = HoneycombManager.shared.getTracer()
         let span = tracer.spanBuilder(spanName: "CartAPIService.getCart").setActive(true).startSpan()
         
-        span.setAttribute(key: "app.user.session_id", value: AttributeValue.string(userId))
-        
         defer { span.end() }
         
         do {
-            print("🛒 CartAPIService.getCart - Fetching cart from /cart?sessionId=\(userId)")
             let serverCart: ServerCart = try await httpClient.request(
                 endpoint: "/cart",
                 method: .GET,
@@ -72,7 +68,6 @@ class CartAPIService: ObservableObject {
                 ],
                 spanName: "CartAPIService.getCart"
             )
-            print("✅ CartAPIService.getCart - Found cart with \(serverCart.items.count) items")
             
             // Convert server cart items to local cart items by fetching product details
             var cartItems: [CartItem] = []
@@ -95,29 +90,24 @@ class CartAPIService: ObservableObject {
             span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(cartItems.count))
             span.setAttribute(key: "app.cart.total.quantity", value: AttributeValue.int(cartItems.reduce(0) { $0 + $1.quantity }))
             span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("get_cart"))
             
             return cartItems
             
         } catch {
             // Handle 404 case - cart doesn't exist yet, return empty cart
             if let nsError = error as NSError?, nsError.code == 404 {
-                print("⚠️ CartAPIService.getCart - Cart not found (404) for userId: \(userId), returning empty cart")
                 span.status = .ok
                 span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(0))
                 span.setAttribute(key: "app.cart.total.quantity", value: AttributeValue.int(0))
                 span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
-                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("get_cart"))
                 span.setAttribute(key: "app.cart.status", value: AttributeValue.string("empty_new_session"))
                 
                 return [] // Return empty cart
             }
             
-            print("❌ CartAPIService.getCart - Failed for userId: \(userId), error: \(error)")
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
             span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("get_cart"))
             throw error
         }
     }
@@ -125,8 +115,6 @@ class CartAPIService: ObservableObject {
     func emptyCart(userId: String) async throws {
         let tracer = HoneycombManager.shared.getTracer()
         let span = tracer.spanBuilder(spanName: "CartAPIService.emptyCart").setActive(true).startSpan()
-        
-        span.setAttribute(key: "app.user.session_id", value: AttributeValue.string(userId))
         
         defer { span.end() }
         
@@ -140,13 +128,11 @@ class CartAPIService: ObservableObject {
             
             span.status = .ok
             span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("empty_cart"))
             
         } catch {
             span.recordException(error)
             span.status = .error(description: error.localizedDescription)
             span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("empty_cart"))
             throw error
         }
     }

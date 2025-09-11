@@ -25,7 +25,7 @@ struct HoneycombConfiguration {
         return HoneycombConfiguration(
             apiKey: apiKey,
             serviceName: serviceName,
-            serviceVersion: plist["SERVICE_VERSION"] as? String ?? "1.0.0",
+            serviceVersion: plist["SERVICE_VERSION"] as? String ?? "1.0.1",
             apiEndpoint: apiEndpoint,
             telemetryEndpoint: telemetryEndpoint,
             debug: plist["DEBUG"] as? Bool ?? true
