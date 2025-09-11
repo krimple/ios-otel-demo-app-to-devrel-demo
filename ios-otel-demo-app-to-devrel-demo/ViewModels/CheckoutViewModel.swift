@@ -50,7 +50,6 @@ class CheckoutViewModel: ObservableObject {
         span.setAttribute(key: "app.shipping.address.city", value: AttributeValue.string(shippingInfo.city))
         span.setAttribute(key: "app.shipping.address.state", value: AttributeValue.string(shippingInfo.state))
         span.setAttribute(key: "app.shipping.address.country", value: AttributeValue.string(shippingInfo.country))
-        span.setAttribute(key: "app.user.session_id", value: AttributeValue.string(sessionManager.getSessionId()))
         span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(cartItems.count))
         span.setAttribute(key: "app.cart.subtotal", value: AttributeValue.double(subtotal))
         
@@ -72,7 +71,6 @@ class CheckoutViewModel: ObservableObject {
             shippingCost = shipping
             span.status = .ok
             span.setAttribute(key: "app.shipping.cost", value: AttributeValue.double(shipping.doubleValue))
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
             span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
             
         } catch {
@@ -86,6 +84,7 @@ class CheckoutViewModel: ObservableObject {
                 span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
                 span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
             } else {
+                // TODO - WTH is this??? AI, what did YOU do?
                 span.status = .ok
                 span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))
             }
@@ -101,7 +100,6 @@ class CheckoutViewModel: ObservableObject {
         let span = tracer.spanBuilder(spanName: "placeOrder").setActive(true).startSpan()
         
         span.setAttribute(key: "app.user.currency", value: AttributeValue.string("USD"))
-        span.setAttribute(key: "app.user.session_id", value: AttributeValue.string(sessionManager.getSessionId()))
         span.setAttribute(key: "app.cart.items.count", value: AttributeValue.int(cartItems.count))
         span.setAttribute(key: "app.checkout.order.total", value: AttributeValue.double(total))
         span.setAttribute(key: "app.checkout.shipping.cost", value: AttributeValue.double(shippingCost?.doubleValue ?? 0.0))
@@ -136,7 +134,6 @@ class CheckoutViewModel: ObservableObject {
             
             span.status = .ok
             span.setAttribute(key: "app.checkout.order.id", value: AttributeValue.string(response.orderId))
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
             span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
             
         } catch {
