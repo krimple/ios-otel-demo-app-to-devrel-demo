@@ -71,18 +71,13 @@ class CheckoutViewModel: ObservableObject {
             shippingCost = shipping
             span.status = .ok
             span.setAttribute(key: "app.shipping.cost", value: AttributeValue.double(shipping.doubleValue))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
-            
         } catch {
             errorMessage = "Failed to calculate shipping: \(error.localizedDescription)"
             
             // Only add stacktrace for non-cancelled errors
             if let urlError = error as? URLError, urlError.code != .cancelled {
-                span.recordException(error)
                 span.status = .error(description: error.localizedDescription)
-                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
-                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+                span.recordException(error)
             } else {
                 // TODO - WTH is this??? AI, what did YOU do?
                 span.status = .ok
@@ -141,11 +136,8 @@ class CheckoutViewModel: ObservableObject {
             
             // Only add stacktrace for non-cancelled errors
             if let urlError = error as? URLError, urlError.code != .cancelled {
-                span.recordException(error)
                 span.status = .error(description: error.localizedDescription)
-                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
-                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+                span.recordException(error)
             } else {
                 span.status = .ok
                 span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))

@@ -60,7 +60,12 @@ class HTTPClient {
             span.status = .ok
             return result
         } catch {
-            span.recordException(error)
+            
+            // TODO - get proper thread - Thread.current unavailable in async
+            Honeycomb.log(
+                error: error,
+                thread: Thread.main
+            )
             
             // Only add stacktrace for non-cancelled errors
             if let urlError = error as? URLError, urlError.code == .cancelled {
@@ -168,8 +173,10 @@ class HTTPClient {
             let error = NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: [
                 NSLocalizedDescriptionKey: errorMessage
             ])
-            span.recordException(error)
+            Honeycomb.log(error: error, thread: Thread.main)
+            /*span.recordException(error)
             span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+             */
             throw error
         }
         
@@ -190,8 +197,12 @@ class HTTPClient {
                 // Response data will be recorded in span attributes for debugging
             }
             span.setAttribute(key: "error.json_decode", value: AttributeValue.string(error.localizedDescription))
-            span.recordException(error)
-            span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+            Honeycomb.log(
+                error: error,
+                thread: Thread.main
+            )
+            // span.recordException(error)
+            /*span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))*/
             throw error
         }
     }
