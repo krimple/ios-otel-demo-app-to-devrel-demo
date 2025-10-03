@@ -44,16 +44,9 @@ class ProductListViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
             
-            // Only add stacktrace for non-cancelled errors
-            if let urlError = error as? URLError, urlError.code != .cancelled {
-                span.recordException(error)
-                span.status = .error(description: error.localizedDescription)
-                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
-            } else {
-                span.status = .ok
-                span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))
-            }
+            // mark this as an error and report it to Honeycomb as a log record
+            span.status = .error(description: error.localizedDescription)
+            Honeycomb.log(error: error, thread: Thread.main)
         }
         
         isLoading = false

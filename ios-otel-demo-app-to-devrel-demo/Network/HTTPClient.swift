@@ -51,9 +51,9 @@ class HTTPClient {
         
         do {
             let result: T = try await performRequest(
-                endpoint: endpoint, 
-                method: method, 
-                body: body, 
+                endpoint: endpoint,
+                method: method,
+                body: body,
                 queryParameters: queryParameters,
                 span: span
             )
@@ -174,9 +174,9 @@ class HTTPClient {
                 NSLocalizedDescriptionKey: errorMessage
             ])
             Honeycomb.log(error: error, thread: Thread.main)
-            /*span.recordException(error)
-            span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
-             */
+            span.recordException(error)
+//            span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
+             
             throw error
         }
         
@@ -196,7 +196,7 @@ class HTTPClient {
             if let responseData = String(data: data, encoding: .utf8) {
                 // Response data will be recorded in span attributes for debugging
             }
-            span.setAttribute(key: "error.json_decode", value: AttributeValue.string(error.localizedDescription))
+            span.recordException(error)
             Honeycomb.log(
                 error: error,
                 thread: Thread.main

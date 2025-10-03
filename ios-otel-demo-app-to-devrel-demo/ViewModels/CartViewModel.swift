@@ -115,8 +115,9 @@ class CartViewModel: ObservableObject {
             
         } catch {
             errorMessage = "Failed to add item to cart: \(error.localizedDescription)"
+            // mark this as an error and report it to Honeycomb as a log record
             span.status = .error(description: error.localizedDescription)
-            span.recordException(error)
+            Honeycomb.log(error: error, thread: Thread.main)
         }
         
         isLoading = false
@@ -204,8 +205,9 @@ class CartViewModel: ObservableObject {
             
         } catch {
             errorMessage = "Failed to load cart: \(error.localizedDescription)"
-            span.recordException(error)
+            // mark this as an error and report it to Honeycomb as a log record
             span.status = .error(description: error.localizedDescription)
+            Honeycomb.log(error: error, thread: Thread.main)
         }
         
         isLoading = false

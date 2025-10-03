@@ -44,10 +44,8 @@ class CartAPIService: ObservableObject {
             
         } catch {
             print("❌ CartAPIService.addItem - Failed for userId: \(userId), error: \(error)")
-            span.recordException(error)
             span.status = .error(description: error.localizedDescription)
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("add_cart_item"))
+            Honeycomb.log(error: error, thread: Thread.main)
             throw error
         }
     }
@@ -105,9 +103,8 @@ class CartAPIService: ObservableObject {
                 return [] // Return empty cart
             }
             
-            span.recordException(error)
             span.status = .error(description: error.localizedDescription)
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
+            Honeycomb.log(error: error, thread: Thread.main)
             throw error
         }
     }
@@ -127,12 +124,13 @@ class CartAPIService: ObservableObject {
             )
             
             span.status = .ok
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
             
         } catch {
-            span.recordException(error)
+            // mark this as an error and report it to Honeycomb as a log record
             span.status = .error(description: error.localizedDescription)
-            span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
+            Honeycomb.log(error: error, thread: Thread.main)
+            // span.recordException(error)
+            // span.status = .error(description: error.localizedDescription)
             throw error
         }
     }
