@@ -1,6 +1,28 @@
 import Foundation
 import MetricKit
 
+// Random ±pct around a base value. e.g., pct 0.15 = ±15%
+// Optionally clamp the result to a minimum.
+@inline(__always)
+func jitter(_ value: Double,
+            pct: Double = 0.10,
+            min: Double? = nil) -> Double {
+  precondition(pct >= 0 && pct.isFinite)
+  let span = abs(value) * pct
+  let delta = Double.random(in: -span...span)
+  let v = value + delta
+  if let m = min { return max(v, m) }
+  return v
+}
+
+// Keep units intact when jittering Measurements.
+extension Measurement where UnitType: Dimension {
+  func jittered(pct: Double = 0.10, min: Double? = nil) -> Self {
+    let j = jitter(value, pct: pct, min: min)
+    return Measurement(value: j, unit: unit)
+  }
+}
+
 // Most MetricKit classes are readonly, and don't have public constructors, so to make fake data,
 // we have to subclass them. Unfortunately, Swift doesn't really have any metaprogramming
 // capability, so there is a ton of boilerplate code.
@@ -147,7 +169,9 @@ class FakeMetricPayload: MXMetricPayload {
 
     override var timeStampBegin: Date {
         // MetricKit generally reports data from the previous day.
-        now.advanced(by: TimeInterval(-1 * 60 * 60 * 24))
+        //now.advanced(by: TimeInterval(-1 * 60 * 60 * 24))
+        // HOWEVER we want it to be in our recent demoset
+        now.advanced(by: TimeInterval(-1 * 60))
     }
 
     override var timeStampEnd: Date { now }
@@ -155,12 +179,12 @@ class FakeMetricPayload: MXMetricPayload {
     override var cpuMetrics: MXCPUMetric? {
         class FakeCPUMetric: MXCPUMetric {
             override var cumulativeCPUTime: Measurement<UnitDuration> {
-                Measurement(value: 1.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(40, pct: 100, min: 0), unit: UnitDuration.seconds)
             }
 
             @available(iOS 14.0, *)
             override var cumulativeCPUInstructions: Measurement<Unit> {
-                Measurement(value: 2.0, unit: Unit(symbol: "instructions"))
+                Measurement(value: jitter(300, pct: 1000, min: 1050), unit: Unit(symbol: "instructions"))
             }
         }
         return FakeCPUMetric()
@@ -169,7 +193,7 @@ class FakeMetricPayload: MXMetricPayload {
     override var gpuMetrics: MXGPUMetric? {
         class FakeGPUMetric: MXGPUMetric {
             override var cumulativeGPUTime: Measurement<UnitDuration> {
-                return Measurement(value: 3.0, unit: UnitDuration.hours)
+                return Measurement(value: jitter(3, pct: 400, min: 0), unit: UnitDuration.hours)
             }
         }
         return FakeGPUMetric()
@@ -179,7 +203,7 @@ class FakeMetricPayload: MXMetricPayload {
         class FakeCellularConditionMetric: MXCellularConditionMetric {
             override var histogrammedCellularConditionTime: MXHistogram<MXUnitSignalBars> {
                 FakeSignalBarsHistogram(
-                    average: Measurement(value: 4.0, unit: MXUnitSignalBars.bars)
+                    average: Measurement(value: jitter(3, pct: 150, min: 1), unit: MXUnitSignalBars.bars)
                 )
             }
         }
@@ -192,13 +216,13 @@ class FakeMetricPayload: MXMetricPayload {
                 Measurement(value: 5.0, unit: UnitDuration.minutes)
             }
             override var cumulativeBackgroundTime: Measurement<UnitDuration> {
-                Measurement(value: 6.0, unit: UnitDuration.microseconds)
+                Measurement(value: jitter(6000, pct: 10000, min: 1000), unit: UnitDuration.microseconds)
             }
             override var cumulativeBackgroundAudioTime: Measurement<UnitDuration> {
-                Measurement(value: 7.0, unit: UnitDuration.milliseconds)
+                Measurement(value: jitter(300, pct: 3000, min: 0), unit: UnitDuration.milliseconds)
             }
             override var cumulativeBackgroundLocationTime: Measurement<UnitDuration> {
-                Measurement(value: 8.0, unit: UnitDuration.minutes)
+                Measurement(value: jitter(1, pct: 300, min: 0), unit: UnitDuration.minutes)
             }
         }
         return FakeAppRunTimeMetric()
@@ -207,22 +231,22 @@ class FakeMetricPayload: MXMetricPayload {
     override var locationActivityMetrics: MXLocationActivityMetric? {
         class FakeLocationActivityMetric: MXLocationActivityMetric {
             override var cumulativeBestAccuracyTime: Measurement<UnitDuration> {
-                Measurement(value: 9.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(80, pct: 10, min: 20), unit: UnitDuration.seconds)
             }
             override var cumulativeBestAccuracyForNavigationTime: Measurement<UnitDuration> {
-                Measurement(value: 10.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(30, pct: 300, min: 10), unit: UnitDuration.seconds)
             }
             override var cumulativeNearestTenMetersAccuracyTime: Measurement<UnitDuration> {
-                Measurement(value: 11.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(10, pct: 200, min: 10), unit: UnitDuration.seconds)
             }
             override var cumulativeHundredMetersAccuracyTime: Measurement<UnitDuration> {
-                Measurement(value: 12.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(30, pct: 200, min: 20), unit: UnitDuration.seconds)
             }
             override var cumulativeKilometerAccuracyTime: Measurement<UnitDuration> {
-                Measurement(value: 13.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(40, pct: 200, min: 20), unit: UnitDuration.seconds)
             }
             override var cumulativeThreeKilometersAccuracyTime: Measurement<UnitDuration> {
-                Measurement(value: 14.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(70, pct: 30, min: 40), unit: UnitDuration.seconds)
             }
         }
         return FakeLocationActivityMetric()
@@ -231,16 +255,16 @@ class FakeMetricPayload: MXMetricPayload {
     override var networkTransferMetrics: MXNetworkTransferMetric? {
         class FakeNetworkTransferMetric: MXNetworkTransferMetric {
             override var cumulativeWifiUpload: Measurement<UnitInformationStorage> {
-                Measurement(value: 15.0, unit: UnitInformationStorage.bytes)
+                Measurement(value: jitter(30000, pct: 20, min: 1500), unit: UnitInformationStorage.bytes)
             }
             override var cumulativeWifiDownload: Measurement<UnitInformationStorage> {
-                Measurement(value: 16.0, unit: UnitInformationStorage.kilobytes)
+                Measurement(value: jitter(50000, pct: 500, min: 35000), unit: UnitInformationStorage.kilobytes)
             }
             override var cumulativeCellularUpload: Measurement<UnitInformationStorage> {
-                Measurement(value: 17.0, unit: UnitInformationStorage.megabytes)
+                Measurement(value: jitter(1, pct: 200, min: 1), unit: UnitInformationStorage.megabytes)
             }
             override var cumulativeCellularDownload: Measurement<UnitInformationStorage> {
-                Measurement(value: 18.0, unit: UnitInformationStorage.gigabytes)
+                Measurement(value: jitter(10, pct: 1000, min: 1), unit: UnitInformationStorage.gigabytes)
             }
         }
         return FakeNetworkTransferMetric()
@@ -249,20 +273,20 @@ class FakeMetricPayload: MXMetricPayload {
     override var applicationLaunchMetrics: MXAppLaunchMetric? {
         class FakeAppLaunchMetric: MXAppLaunchMetric {
             override var histogrammedTimeToFirstDraw: MXHistogram<UnitDuration> {
-                FakeDurationHistogram(average: Measurement(value: 19.0, unit: UnitDuration.minutes))
+                FakeDurationHistogram(average: Measurement(value: jitter(1, pct: 1000, min: 1), unit: UnitDuration.minutes))
             }
             override var histogrammedApplicationResumeTime: MXHistogram<UnitDuration> {
-                FakeDurationHistogram(average: Measurement(value: 20.0, unit: UnitDuration.minutes))
+                FakeDurationHistogram(average: Measurement(value: jitter(10, pct: 5, min: 9), unit: UnitDuration.minutes))
             }
 
             @available(iOS 15.2, *)
             override var histogrammedOptimizedTimeToFirstDraw: MXHistogram<UnitDuration> {
-                FakeDurationHistogram(average: Measurement(value: 21.0, unit: UnitDuration.minutes))
+                FakeDurationHistogram(average: Measurement(value: jitter(10, pct: 10, min: 8), unit: UnitDuration.minutes))
             }
 
             @available(iOS 16.0, *)
             override var histogrammedExtendedLaunch: MXHistogram<UnitDuration> {
-                FakeDurationHistogram(average: Measurement(value: 22.0, unit: UnitDuration.minutes))
+                FakeDurationHistogram(average: Measurement(value: jitter(5, pct: 1000, min: 1), unit: UnitDuration.minutes))
             }
         }
         return FakeAppLaunchMetric()
@@ -271,7 +295,7 @@ class FakeMetricPayload: MXMetricPayload {
     override var applicationResponsivenessMetrics: MXAppResponsivenessMetric? {
         class FakeAppResponsivenessMetric: MXAppResponsivenessMetric {
             override var histogrammedApplicationHangTime: MXHistogram<UnitDuration> {
-                FakeDurationHistogram(average: Measurement(value: 23.0, unit: UnitDuration.hours))
+                FakeDurationHistogram(average: Measurement(value: jitter(1, pct: 1000, min: 0), unit: UnitDuration.hours))
             }
         }
         return FakeAppResponsivenessMetric()
@@ -280,7 +304,7 @@ class FakeMetricPayload: MXMetricPayload {
     override var diskIOMetrics: MXDiskIOMetric? {
         class FakeDiskIOMetric: MXDiskIOMetric {
             override var cumulativeLogicalWrites: Measurement<UnitInformationStorage> {
-                Measurement(value: 24.0, unit: UnitInformationStorage.terabytes)
+                Measurement(value: jitter(1, pct: 200, min: 0), unit: UnitInformationStorage.terabytes)
             }
         }
         return FakeDiskIOMetric()
@@ -289,11 +313,11 @@ class FakeMetricPayload: MXMetricPayload {
     override var memoryMetrics: MXMemoryMetric? {
         class FakeMemoryMetric: MXMemoryMetric {
             override var peakMemoryUsage: Measurement<UnitInformationStorage> {
-                Measurement(value: 25.0, unit: UnitInformationStorage.bytes)
+                Measurement(value: jitter(102400, pct: 300, min: 1024), unit: UnitInformationStorage.bytes)
             }
             override var averageSuspendedMemory: MXAverage<UnitInformationStorage> {
                 FakeInformationStorageAverage(
-                    average: Measurement(value: 26.0, unit: UnitInformationStorage.bytes)
+                    average: Measurement(value: jitter(2048102410, pct: 200, min: 2048100000), unit: UnitInformationStorage.bytes)
                 )
             }
         }
@@ -303,7 +327,7 @@ class FakeMetricPayload: MXMetricPayload {
     override var displayMetrics: MXDisplayMetric? {
         class FakePixelLuminanceAverage: MXAverage<MXUnitAveragePixelLuminance> {
             override var averageMeasurement: Measurement<MXUnitAveragePixelLuminance> {
-                Measurement(value: 27.0, unit: MXUnitAveragePixelLuminance.apl)
+                Measurement(value: jitter(1, pct: 500, min: 1), unit: MXUnitAveragePixelLuminance.apl)
             }
             override var sampleCount: Int { 1 }
             override var standardDeviation: Double { 1.0 }
@@ -320,7 +344,7 @@ class FakeMetricPayload: MXMetricPayload {
     override var animationMetrics: MXAnimationMetric? {
         class FakeAnimationMetric: MXAnimationMetric {
             override var scrollHitchTimeRatio: Measurement<Unit> {
-                Measurement(value: 28.0, unit: Unit(symbol: "ratio"))
+                Measurement(value: jitter(0.1, pct: 100, min: 0.01), unit: Unit(symbol: "ratio"))
             }
         }
         return FakeAnimationMetric()
@@ -353,28 +377,28 @@ class FakeMetricPayload: MXMetricPayload {
         class FakeAppExitMetric: MXAppExitMetric {
             override var foregroundExitData: MXForegroundExitData {
                 class FakeForegroundExitData: MXForegroundExitData {
-                    override var cumulativeNormalAppExitCount: Int { 30 }
-                    override var cumulativeMemoryResourceLimitExitCount: Int { 31 }
-                    override var cumulativeBadAccessExitCount: Int { 32 }
-                    override var cumulativeAbnormalExitCount: Int { 33 }
-                    override var cumulativeIllegalInstructionExitCount: Int { 34 }
-                    override var cumulativeAppWatchdogExitCount: Int { 35 }
+                    override var cumulativeNormalAppExitCount: Int { 10 }
+                    override var cumulativeMemoryResourceLimitExitCount: Int { 10 }
+                    override var cumulativeBadAccessExitCount: Int { 5 }
+                    override var cumulativeAbnormalExitCount: Int { 1 }
+                    override var cumulativeIllegalInstructionExitCount: Int { 2 }
+                    override var cumulativeAppWatchdogExitCount: Int { 3 }
                 }
                 return FakeForegroundExitData()
             }
 
             override var backgroundExitData: MXBackgroundExitData {
                 class FakeBackgroundExitData: MXBackgroundExitData {
-                    override var cumulativeNormalAppExitCount: Int { 36 }
-                    override var cumulativeMemoryResourceLimitExitCount: Int { 37 }
-                    override var cumulativeCPUResourceLimitExitCount: Int { 38 }
-                    override var cumulativeMemoryPressureExitCount: Int { 39 }
-                    override var cumulativeBadAccessExitCount: Int { 40 }
-                    override var cumulativeAbnormalExitCount: Int { 41 }
-                    override var cumulativeIllegalInstructionExitCount: Int { 42 }
-                    override var cumulativeAppWatchdogExitCount: Int { 43 }
-                    override var cumulativeSuspendedWithLockedFileExitCount: Int { 44 }
-                    override var cumulativeBackgroundTaskAssertionTimeoutExitCount: Int { 45 }
+                    override var cumulativeNormalAppExitCount: Int { 50 }
+                    override var cumulativeMemoryResourceLimitExitCount: Int { 2 }
+                    override var cumulativeCPUResourceLimitExitCount: Int { 0 }
+                    override var cumulativeMemoryPressureExitCount: Int { 0 }
+                    override var cumulativeBadAccessExitCount: Int { 0 }
+                    override var cumulativeAbnormalExitCount: Int { 0 }
+                    override var cumulativeIllegalInstructionExitCount: Int { 0 }
+                    override var cumulativeAppWatchdogExitCount: Int { 4 }
+                    override var cumulativeSuspendedWithLockedFileExitCount: Int { 0 }
+                    override var cumulativeBackgroundTaskAssertionTimeoutExitCount: Int { 10 }
                 }
                 return FakeBackgroundExitData()
             }
@@ -385,23 +409,23 @@ class FakeMetricPayload: MXMetricPayload {
     override var signpostMetrics: [MXSignpostMetric]? {
         class FakeSignpostIntervalData: MXSignpostIntervalData {
             override var histogrammedSignpostDuration: MXHistogram<UnitDuration> {
-                FakeDurationHistogram(average: Measurement(value: 46.0, unit: UnitDuration.seconds))
+                FakeDurationHistogram(average: Measurement(value: jitter(2, pct: 50, min: 1), unit: UnitDuration.seconds))
             }
             override var cumulativeCPUTime: Measurement<UnitDuration>? {
-                Measurement(value: 47.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(200, pct: 80, min: 10), unit: UnitDuration.seconds)
             }
             override var averageMemory: MXAverage<UnitInformationStorage>? {
                 FakeInformationStorageAverage(
-                    average: Measurement(value: 48.0, unit: UnitInformationStorage.bytes)
+                    average: Measurement(value: jitter(40076, pct: 90, min: 10), unit: UnitInformationStorage.bytes)
                 )
             }
             override var cumulativeLogicalWrites: Measurement<UnitInformationStorage>? {
-                Measurement(value: 49.0, unit: UnitInformationStorage.bytes)
+                Measurement(value: jitter(100, pct: 10, min: 5), unit: UnitInformationStorage.bytes)
             }
 
             @available(iOS 15.0, *)
             override var cumulativeHitchTimeRatio: Measurement<Unit>? {
-                Measurement(value: 50.0, unit: Unit(symbol: "ratio"))
+                Measurement(value: jitter(5, pct: 2000, min: 2), unit: Unit(symbol: "ratio"))
             }
         }
 
@@ -470,7 +494,7 @@ class FakeDiagnosticPayload: MXDiagnosticPayload {
         class FakeDiskWriteExceptionDiagnostic: MXDiskWriteExceptionDiagnostic {
             override var callStackTree: MXCallStackTree { FakeCallStackTree() }
             override var totalWritesCaused: Measurement<UnitInformationStorage> {
-                Measurement(value: 55.0, unit: UnitInformationStorage.megabytes)
+                Measurement(value: jitter(3, pct: 100, min: 0), unit: UnitInformationStorage.megabytes)
             }
         }
         return [FakeDiskWriteExceptionDiagnostic()]
@@ -480,7 +504,7 @@ class FakeDiagnosticPayload: MXDiagnosticPayload {
         class FakeHangDiagnostic: MXHangDiagnostic {
             override var callStackTree: MXCallStackTree { FakeCallStackTree() }
             override var hangDuration: Measurement<UnitDuration> {
-                Measurement(value: 56.0, unit: UnitDuration.seconds)
+                Measurement(value: jitter(1, pct: 500, min: 0), unit: UnitDuration.seconds)
             }
         }
         return [FakeHangDiagnostic()]

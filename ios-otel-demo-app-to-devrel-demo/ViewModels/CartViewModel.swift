@@ -253,6 +253,8 @@ class CartViewModel: ObservableObject {
             .send()
         
         // Intentional hang for demonstration
+        // this is lame...
+        // we need a more systemic slowdown.
         DispatchQueue.main.async {
             Thread.sleep(forTimeInterval: 10.0) // Block main thread
         }
