@@ -43,7 +43,7 @@ jobs:
         xcodebuild \
           -project ios-otel-demo-app-to-devrel-demo.xcodeproj \
           -scheme ios-otel-demo-app-to-devrel-demo \
-          -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation)' \
+          -destination 'platform=iOS Simulator,OS=18.4,name=iPhone SE (3rd generation)' \
           -only-testing:ios-otel-demo-app-to-devrel-demoTests \
           clean test \
           CODE_SIGNING_ALLOWED=NO
@@ -53,7 +53,7 @@ jobs:
         xcodebuild \
           -project ios-otel-demo-app-to-devrel-demo.xcodeproj \
           -scheme ios-otel-demo-app-to-devrel-demo \
-          -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation)' \
+          -destination 'platform=iOS Simulator,OS=18.4,name=iPhone SE (3rd generation)' \
           clean build \
           CODE_SIGNING_ALLOWED=NO
 
