@@ -29,5 +29,7 @@ final class ios_otel_demo_app_to_devrel_demoUITestsLaunchTests: XCTestCase {
         attachment.name = "Launch Screen"
         attachment.lifetime = .keepAlways
         add(attachment)
+        
+        
     }
 }

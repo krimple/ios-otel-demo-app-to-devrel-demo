@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/honeycombio/honeycomb-opentelemetry-swift",
       "state" : {
-        "revision" : "81b89fccc3fe36d90ad7bd4953861e6e33866129",
-        "version" : "0.0.14"
+        "revision" : "1b91c0b237e5f26e968c5c5400edd9ba2722f3df",
+        "version" : "2.1.2"
       }
     },
     {
@@ -24,8 +24,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift.git",
       "state" : {
-        "revision" : "b9b891abd313a538f8bbee7ac6bc96f647dd2379",
-        "version" : "1.16.1"
+        "revision" : "7a68865d9cc571cbe62c4d4902ccc0d902881eab",
+        "version" : "2.1.0"
+      }
+    },
+    {
+      "identity" : "opentelemetry-swift-core",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/open-telemetry/opentelemetry-swift-core.git",
+      "state" : {
+        "revision" : "fd787757decabfa93319cc3c04f03a49e0cf40b6",
+        "version" : "2.2.0"
       }
     },
     {
@@ -141,8 +150,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio.git",
       "state" : {
-        "revision" : "34d486b01cd891297ac615e40d5999536a1e138d",
-        "version" : "2.83.0"
+        "revision" : "a18bddb0acf7a40d982b2f128ce73ce4ee31f352",
+        "version" : "2.86.2"
       }
     },
     {

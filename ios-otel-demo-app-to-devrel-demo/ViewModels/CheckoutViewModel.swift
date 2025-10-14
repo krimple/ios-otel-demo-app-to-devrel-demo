@@ -71,23 +71,12 @@ class CheckoutViewModel: ObservableObject {
             shippingCost = shipping
             span.status = .ok
             span.setAttribute(key: "app.shipping.cost", value: AttributeValue.double(shipping.doubleValue))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
-            
         } catch {
             errorMessage = "Failed to calculate shipping: \(error.localizedDescription)"
-            
-            // Only add stacktrace for non-cancelled errors
-            if let urlError = error as? URLError, urlError.code != .cancelled {
-                span.recordException(error)
-                span.status = .error(description: error.localizedDescription)
-                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("calculate_shipping"))
-                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
-            } else {
-                // TODO - WTH is this??? AI, what did YOU do?
-                span.status = .ok
-                span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))
-            }
+        
+            // mark this as an error and report it to Honeycomb as a log record
+            span.status = .error(description: error.localizedDescription)
+            Honeycomb.log(error: error, thread: Thread.main)
         }
         
         isLoadingShipping = false
@@ -137,20 +126,12 @@ class CheckoutViewModel: ObservableObject {
             span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
             
         } catch {
+            // FOLLOW THIS PATTERN ELSEWHERE
             errorMessage = "Failed to place order: \(error.localizedDescription)"
             
-            // Only add stacktrace for non-cancelled errors
-            if let urlError = error as? URLError, urlError.code != .cancelled {
-                span.recordException(error)
-                span.status = .error(description: error.localizedDescription)
-                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("failed"))
-                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
-                span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
-            } else {
-                span.status = .ok
-                span.setAttribute(key: "app.http.timeout", value: AttributeValue.bool(true))
-            }
-        }
+            // mark this as an error and report it to Honeycomb as a log record
+            span.status = .error(description: error.localizedDescription)
+            Honeycomb.log(error: error, thread: Thread.main)        }
         
         isProcessingOrder = false
     }

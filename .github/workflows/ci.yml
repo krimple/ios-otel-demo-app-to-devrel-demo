@@ -13,8 +13,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Select Xcode 16
-      run: sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+    - name: Select Xcode 26
+      run: sudo xcode-select -s /Applications/Xcode_26.0.1.app/Contents/Developer
     
     - name: Show available Xcode versions
       run: ls -la /Applications/ | grep Xcode
@@ -43,17 +43,17 @@ jobs:
         xcodebuild \
           -project ios-otel-demo-app-to-devrel-demo.xcodeproj \
           -scheme ios-otel-demo-app-to-devrel-demo \
-          -destination 'platform=iOS Simulator,OS=18.4,name=iPhone SE (3rd generation)' \
+          -destination 'platform=iOS Simulator,OS=26.0,name=iPhone 16 Pro Max' \
           -only-testing:ios-otel-demo-app-to-devrel-demoTests \
           clean test \
           CODE_SIGNING_ALLOWED=NO
-    
+
     - name: Build app for simulator
       run: |
         xcodebuild \
           -project ios-otel-demo-app-to-devrel-demo.xcodeproj \
           -scheme ios-otel-demo-app-to-devrel-demo \
-          -destination 'platform=iOS Simulator,OS=18.4,name=iPhone SE (3rd generation)' \
+          -destination 'platform=iOS Simulator,OS=26.0,name=iPhone SE (3rd generation)' \
           clean build \
           CODE_SIGNING_ALLOWED=NO
 

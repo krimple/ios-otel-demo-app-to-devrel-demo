@@ -10,6 +10,17 @@ enum HTTPMethod: String {
     case DELETE = "DELETE"
 }
 
+enum HTTPError: LocalizedError {
+  case status(Int, String)
+
+  var errorDescription: String? {
+    switch self {
+    case let .status(code, reason):
+      return "HTTP \(code) \(reason)"
+    }
+  }
+}
+
 // Custom setter for trace propagation headers
 private struct HttpTextMapSetter: Setter {
     func set(carrier: inout [String: String], key: String, value: String) {
@@ -17,15 +28,19 @@ private struct HttpTextMapSetter: Setter {
     }
 }
 
+private func getUrlSession() -> URLSession {
+    let configuration = URLSessionConfiguration.default
+    return URLSession(configuration: configuration)
+}
+
 class HTTPClient {
-    private let session: URLSession
     private let baseURL: String
     private let textMapSetter = HttpTextMapSetter()
     
     init(baseURL: String) {
         self.baseURL = baseURL
-        // Honeycomb automatically instruments URLSession
-        self.session = URLSession.shared
+        // TODO - this seems not to be correct: Honeycomb automatically instruments URLSession
+        //self.session = URLSession.shared
     }
     
     var apiEndpoint: String {
@@ -51,16 +66,21 @@ class HTTPClient {
         
         do {
             let result: T = try await performRequest(
-                endpoint: endpoint, 
-                method: method, 
-                body: body, 
+                endpoint: endpoint,
+                method: method,
+                body: body,
                 queryParameters: queryParameters,
                 span: span
             )
             span.status = .ok
             return result
         } catch {
-            span.recordException(error)
+            
+            // TODO - get proper thread - Thread.current unavailable in async
+            Honeycomb.log(
+                error: error,
+                thread: Thread.main
+            )
             
             // Only add stacktrace for non-cancelled errors
             if let urlError = error as? URLError, urlError.code == .cancelled {
@@ -94,7 +114,6 @@ class HTTPClient {
             throw URLError(.badURL)
         }
         
-        
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -121,77 +140,51 @@ class HTTPClient {
             request.httpBody = body
         }
         
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        
-        // Add response status to span
-        span.setAttribute(key: "http.status_code", value: AttributeValue.int(httpResponse.statusCode))
-        
-        guard 200...299 ~= httpResponse.statusCode else {
-            
-            // Record FULL error information in span
-            span.setAttribute(key: "error", value: AttributeValue.bool(true))
-            span.setAttribute(key: "http.status_code", value: AttributeValue.int(httpResponse.statusCode))
-            span.setAttribute(key: "http.status_text", value: AttributeValue.string(HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)))
-            
-            // Record ALL response headers
-            for (headerName, headerValue) in httpResponse.allHeaderFields {
-                if let name = headerName as? String, let value = headerValue as? String {
-                    span.setAttribute(key: "http.response.header.\(name.lowercased())", value: AttributeValue.string(value))
-                }
-            }
-            
-            // Build error message with status code and response body
-            var errorMessage = "HTTP \(httpResponse.statusCode) \(HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))"
-            
-            // Record FULL response body and add to error message
-            if let responseData = String(data: data, encoding: .utf8) {
-                span.setAttribute(key: "http.response.body", value: AttributeValue.string(responseData))
-                span.setAttribute(key: "http.response.body_size", value: AttributeValue.int(data.count))
-                
-                // Add response body to error message if not empty
-                if !responseData.isEmpty {
-                    errorMessage += " - Response: \(responseData)"
-                }
-            } else {
-                span.setAttribute(key: "http.response.body_size", value: AttributeValue.int(data.count))
-                span.setAttribute(key: "http.response.body_encoding", value: AttributeValue.string("non-utf8"))
-            }
-            
-            // Record URL that failed
-            span.setAttribute(key: "http.url", value: AttributeValue.string(url.absoluteString))
-            
-            // Create a simple NSError with the descriptive message
-            let error = NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: [
-                NSLocalizedDescriptionKey: errorMessage
-            ])
-            span.recordException(error)
-            span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
-            throw error
-        }
-        
-        
-        // Handle 204 No Content responses (like DELETE /cart)
-        if httpResponse.statusCode == 204 && data.isEmpty {
-            // For EmptyResponse, return an empty instance
-            if T.self == EmptyResponse.self {
-                return EmptyResponse() as! T
-            }
-        }
-        
         do {
+            let urlSession : URLSession = getUrlSession()
+
+            // clean this up when done
+            defer { urlSession.invalidateAndCancel() }
+            
+            // execute the request
+            let (data, response) = try await urlSession.data(for: request)
+            
+            // now figure out the response
+            // TODO is this right??
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            
+            // IF it worked great, otherwise :point-down:
+            // TODO also this doesn't handle redirects 304/302
+            guard 200...299 ~= httpResponse.statusCode else {
+                // Record FULL error information in span
+                // TODO - review this, it's ugly AI spam (removing span data now
+                // for what should be auto recorded by the honeycomb/upstream instrumentation
+                
+                // TODO - do I even do this? Wouldn't the instrumentation of the API have
+                // the error state?
+                // Create a simple NSError with the descriptive message
+                throw HTTPError.status(httpResponse.statusCode, "invalid response")
+            }
+            
+            // ok, it's < 300 response code
+            
+            // Handle 204 No Content responses (like DELETE /cart)
+            if httpResponse.statusCode == 204 && data.isEmpty {
+                // For EmptyResponse, return an empty instance
+                if T.self == EmptyResponse.self {
+                    return EmptyResponse() as! T
+                }
+            }
+            // otherwise parse and return
             let result = try JSONDecoder().decode(T.self, from: data)
             return result
         } catch {
-            if let responseData = String(data: data, encoding: .utf8) {
-                // Response data will be recorded in span attributes for debugging
-            }
-            span.setAttribute(key: "error.json_decode", value: AttributeValue.string(error.localizedDescription))
+            // for when it epically blows up (not a standard http response)
+            Honeycomb.log(error: error, thread: Thread.main)
+            // maybe?
             span.recordException(error)
-            span.setAttribute(key: "exception.stacktrace", value: AttributeValue.string(Thread.callStackSymbols.joined(separator: "\n")))
             throw error
         }
     }

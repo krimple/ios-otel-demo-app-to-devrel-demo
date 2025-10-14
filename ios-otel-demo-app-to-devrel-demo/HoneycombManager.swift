@@ -15,6 +15,7 @@ class HoneycombManager {
             .setServiceName(config.serviceName)
             .setServiceVersion(config.serviceVersion)
             .setAPIEndpoint(config.telemetryEndpoint)
+            .setURLSessionInstrumentationEnabled(true)
             .setDebug(config.debug)
             .build()
         
@@ -25,8 +26,8 @@ class HoneycombManager {
         return OpenTelemetry.instance.tracerProvider.get(instrumentationName: "ios.demo.app", instrumentationVersion: "1.0.1")
     }
     
-    func getMeter() -> Meter {
-        return OpenTelemetry.instance.meterProvider.get(instrumentationName: "ios.demo.app", instrumentationVersion: "1.0.1")
+    func getMeter() -> any Meter {
+        return OpenTelemetry.instance.meterProvider.get(name: "ios.demo.app")
     }
     
     // For field-based events, we'll use a simple event builder pattern

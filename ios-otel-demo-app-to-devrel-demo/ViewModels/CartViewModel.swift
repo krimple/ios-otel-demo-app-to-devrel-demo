@@ -69,6 +69,8 @@ class CartViewModel: ObservableObject {
             // Trigger intentional hang for demo
             span.setAttribute(key: "app.demo.trigger", value: AttributeValue.string("hang"))
             triggerHangDemo()
+        } else if product.id == "OLJCESPC7Z" && newTotal == 8 {
+            sendFakeMetrics()
         }
         
         isLoading = true
@@ -99,8 +101,6 @@ class CartViewModel: ObservableObject {
             // Check if the cart is still empty after adding an item (indicates a problem)
             if items.isEmpty && cartItemsBefore == 0 {
                 errorMessage = "Item was added to cart but not visible. This may be a temporary server issue. Please try refreshing the cart."
-                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("add_product"))
-                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("warning"))
                 span.setAttribute(key: "app.cart.discrepancy", value: AttributeValue.bool(true))
                 span.addEvent(name: "cart_add_discrepancy", attributes: [
                     "expected_behavior": AttributeValue.string("cart_should_contain_added_item"),
@@ -108,8 +108,6 @@ class CartViewModel: ObservableObject {
                 ])
             } else {
                 span.status = .ok
-                span.setAttribute(key: "app.operation.type", value: AttributeValue.string("add_product"))
-                span.setAttribute(key: "app.operation.status", value: AttributeValue.string("success"))
             }
             
             span.setAttribute(key: "app.cart.total.items", value: AttributeValue.int(items.count))
@@ -117,8 +115,9 @@ class CartViewModel: ObservableObject {
             
         } catch {
             errorMessage = "Failed to add item to cart: \(error.localizedDescription)"
-            span.recordException(error)
+            // mark this as an error and report it to Honeycomb as a log record
             span.status = .error(description: error.localizedDescription)
+            Honeycomb.log(error: error, thread: Thread.main)
         }
         
         isLoading = false
@@ -135,7 +134,6 @@ class CartViewModel: ObservableObject {
         
         span.setAttribute(key: "app.product.id", value: AttributeValue.string(product.id))
         span.setAttribute(key: "app.product.name", value: AttributeValue.string(product.name))
-        span.setAttribute(key: "app.operation.type", value: AttributeValue.string("remove_product"))
         // TODO FIX
         // span.status = .error(description: errorMessage)
 
@@ -207,8 +205,9 @@ class CartViewModel: ObservableObject {
             
         } catch {
             errorMessage = "Failed to load cart: \(error.localizedDescription)"
-            span.recordException(error)
+            // mark this as an error and report it to Honeycomb as a log record
             span.status = .error(description: error.localizedDescription)
+            Honeycomb.log(error: error, thread: Thread.main)
         }
         
         isLoading = false
@@ -254,6 +253,8 @@ class CartViewModel: ObservableObject {
             .send()
         
         // Intentional hang for demonstration
+        // this is lame...
+        // we need a more systemic slowdown.
         DispatchQueue.main.async {
             Thread.sleep(forTimeInterval: 10.0) // Block main thread
         }
