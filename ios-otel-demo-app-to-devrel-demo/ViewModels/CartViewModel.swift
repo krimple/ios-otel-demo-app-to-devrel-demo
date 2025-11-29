@@ -48,29 +48,41 @@ class CartViewModel: ObservableObject {
     private func addProductAsync(_ product: Product, quantity: Int = 1) async {
         let tracer = HoneycombManager.shared.getTracer()
         let span = tracer.spanBuilder(spanName: "addProductToCart").setActive(true).startSpan()
-        
+
         // Add span attributes
         span.setAttribute(key: "app.product.id", value: AttributeValue.string(product.id))
         span.setAttribute(key: "app.product.name", value: AttributeValue.string(product.name))
         span.setAttribute(key: "app.cart.item.quantity", value: AttributeValue.int(quantity))
         span.setAttribute(key: "app.product.price.usd", value: AttributeValue.double(product.priceUsd.doubleValue))
-        
+
         defer { span.end() }
-        
+
+        // Create child span for cart add event processing
+        let cartAddSpan = tracer.spanBuilder(spanName: "cartAddEvent").setActive(true).startSpan()
+        cartAddSpan.setAttribute(key: "app.product.id", value: AttributeValue.string(product.id))
+        cartAddSpan.setAttribute(key: "app.cart.item.quantity", value: AttributeValue.int(quantity))
+
         // Handle special crash/hang demo conditions
         let currentQuantity = getTotalQuantity(for: product.id)
         let newTotal = currentQuantity + quantity
-        
+
         if product.id == "OLJCESPC7Z" && newTotal == 10 {
             // Trigger intentional crash for demo
-            span.setAttribute(key: "app.demo.trigger", value: AttributeValue.string("crash"))
+            cartAddSpan.end()
             triggerCrashDemo()
         } else if product.id == "OLJCESPC7Z" && newTotal == 9 {
             // Trigger intentional hang for demo
-            span.setAttribute(key: "app.demo.trigger", value: AttributeValue.string("hang"))
             triggerHangDemo()
+            cartAddSpan.end()
         } else if product.id == "OLJCESPC7Z" && newTotal == 8 {
             sendFakeMetrics()
+            cartAddSpan.end()
+        } else if product.id == "9SIQT8TOJO" {
+            // Trigger CPU-intensive delay for demo
+            triggerSpicyDelayDemo()
+            cartAddSpan.end()
+        } else {
+            cartAddSpan.end()
         }
         
         isLoading = true
@@ -230,33 +242,40 @@ class CartViewModel: ObservableObject {
     }
     
     private func triggerCrashDemo() {
-        // Record the crash event before crashing
-        HoneycombManager.shared.createEvent(name: "demo.crash_triggered")
-            .addFields([
-                "trigger": "10_explorascopes",
-                "demo_type": "intentional_crash"
-            ])
-            .send()
-        
         // Intentional crash for telemetry demonstration
-        fatalError("Demo crash: Added 10 National Park Foundation Explorascopes")
+        fatalError("Product index exceeded. Please report this as a bug.")
     }
     
     private func triggerHangDemo() {
-        // Record the hang event
-        HoneycombManager.shared.createEvent(name: "demo.hang_triggered")
-            .addFields([
-                "trigger": "9_explorascopes",
-                "demo_type": "intentional_hang",
-                "duration_seconds": 10
-            ])
-            .send()
-        
         // Intentional hang for demonstration
         // this is lame...
         // we need a more systemic slowdown.
         DispatchQueue.main.async {
             Thread.sleep(forTimeInterval: 10.0) // Block main thread
+        }
+    }
+
+    private func triggerSpicyDelayDemo() {
+        // Create a tight CPU loop that runs for approximately 3-4 seconds
+        let startTime = Date()
+        var counter: UInt64 = 0
+        let targetDuration: TimeInterval = 3.5 // 3.5 seconds
+
+        // Tight CPU loop - performs intensive calculations
+        while Date().timeIntervalSince(startTime) < targetDuration {
+            // Compute some expensive operations to keep CPU busy
+            for _ in 0..<10000 {
+                counter = counter &+ 1
+                // Perform some mathematical operations to prevent optimization
+                _ = sqrt(Double(counter))
+                _ = sin(Double(counter))
+                _ = cos(Double(counter))
+            }
+        }
+
+        // Prevent the counter from being optimized away
+        if counter > 0 {
+            print("🔥 Spicy delay completed - performed \(counter) iterations")
         }
     }
 }

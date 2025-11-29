@@ -122,9 +122,7 @@ class CheckoutViewModel: ObservableObject {
             }
             
             span.status = .ok
-            span.setAttribute(key: "app.checkout.order.id", value: AttributeValue.string(response.orderId))
-            span.setAttribute(key: "app.operation.type", value: AttributeValue.string("place_order"))
-            
+            span.setAttribute(key: "app.checkout.order.id", value: AttributeValue.string(response.orderId))            
         } catch {
             // FOLLOW THIS PATTERN ELSEWHERE
             errorMessage = "Failed to place order: \(error.localizedDescription)"

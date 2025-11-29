@@ -174,7 +174,7 @@ class FakeMetricPayload: MXMetricPayload {
         now.advanced(by: TimeInterval(-1 * 60))
     }
 
-    override var timeStampEnd: Date { now }
+    override var timeStampEnd: Date { timeStampBegin.advanced(by: TimeInterval(3)) }
 
     override var cpuMetrics: MXCPUMetric? {
         class FakeCPUMetric: MXCPUMetric {
@@ -468,14 +468,13 @@ class FakeCallStackTree: MXCallStackTree {
 
 @available(iOS 14.0, *)
 class FakeDiagnosticPayload: MXDiagnosticPayload {
-    private let now = Date()
+    
 
     override var timeStampBegin: Date {
-        // MetricKit generally reports data from the previous day.
-        now.advanced(by: TimeInterval(-1 * 60 * 60 * 24))
+        return Date()
     }
 
-    override var timeStampEnd: Date { now }
+    override var timeStampEnd: Date { return timeStampBegin.advanced(by: TimeInterval(100)) }
 
     override var cpuExceptionDiagnostics: [MXCPUExceptionDiagnostic]? {
         class FakeCPUExceptionDiagnostic: MXCPUExceptionDiagnostic {

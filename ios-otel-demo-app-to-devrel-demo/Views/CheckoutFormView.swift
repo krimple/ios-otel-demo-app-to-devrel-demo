@@ -287,7 +287,10 @@ struct CheckoutFormView: View {
     }
     
     private func errorSection(_ message: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(
+            alignment: .leading,
+            spacing: 8
+        ) {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(.red)

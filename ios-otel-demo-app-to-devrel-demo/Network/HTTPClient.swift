@@ -28,19 +28,15 @@ private struct HttpTextMapSetter: Setter {
     }
 }
 
-private func getUrlSession() -> URLSession {
-    let configuration = URLSessionConfiguration.default
-    return URLSession(configuration: configuration)
-}
-
 class HTTPClient {
     private let baseURL: String
     private let textMapSetter = HttpTextMapSetter()
-    
+    private let urlSession: URLSession
+
     init(baseURL: String) {
         self.baseURL = baseURL
-        // TODO - this seems not to be correct: Honeycomb automatically instruments URLSession
-        //self.session = URLSession.shared
+        let configuration = URLSessionConfiguration.default
+        self.urlSession = URLSession(configuration: configuration)
     }
     
     var apiEndpoint: String {
@@ -141,11 +137,6 @@ class HTTPClient {
         }
         
         do {
-            let urlSession : URLSession = getUrlSession()
-
-            // clean this up when done
-            defer { urlSession.invalidateAndCancel() }
-            
             // execute the request
             let (data, response) = try await urlSession.data(for: request)
             
