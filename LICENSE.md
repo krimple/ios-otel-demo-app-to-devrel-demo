@@ -2,6 +2,8 @@
 
 This example application is based on code from the OpenTelemetry Android SDK sample and adapted for iOS using the OpenTelemetry Swift SDK.
 
+“App icons include imagery from ‘Andromeda_Galaxy_2025.jpg’ by Brody Wesner, dedicated to the public domain under CC0 (via Wikimedia Commons).”
+
 ---
 
                                  Apache License

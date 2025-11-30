@@ -17,8 +17,10 @@ The OpenTelemetry iOS Demo App demonstrates the following observability features
 - **Custom Business Metrics**: Cart additions, product views, and conversion tracking
 
 ### Demo-Specific Features
-- **Crash Reporting**: Intentional crash when adding exactly 10 National Park Foundation Explorascopes
-- **Hang Detection**: Main thread hang when adding exactly 9 National Park Foundation Explorascopes  
+- **Crash Reporting**: Intentional crash when adding exactly 10 National Park Foundation Explorascopes (product ID: OLJCESPC7Z)
+- **Hang Detection**: Main thread hang when adding exactly 9 National Park Foundation Explorascopes (product ID: OLJCESPC7Z)
+- **Simulated Metrics**: Sends simulated metrics when adding exactly 8 National Park Foundation Explorascopes (product ID: OLJCESPC7Z)
+- **CPU-Intensive Delay**: Tight CPU loop (3-4 seconds) when adding Optical Tube Assembly to cart (product ID: 9SIQT8TOJO)
 - **Slow Render Monitoring**: Intentionally slow animation when adding The Comet Book to demonstrate performance monitoring
 
 ### Trace Propagation
@@ -72,6 +74,8 @@ The app follows MVVM architecture with SwiftUI:
    - Browse products and add items to cart
    - Add 10 Explorascopes to trigger crash demo
    - Add 9 Explorascopes to trigger hang demo
+   - Add 8 Explorascopes to send simulated metrics
+   - Add Optical Tube Assembly to cart to trigger CPU-intensive delay (3-4 seconds)
    - Add The Comet Book to see slow animation demo
 4. View telemetry data in your Honeycomb dashboard
 

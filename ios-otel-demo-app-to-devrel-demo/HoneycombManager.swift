@@ -16,6 +16,7 @@ class HoneycombManager {
             .setServiceVersion(config.serviceVersion)
             .setAPIEndpoint(config.telemetryEndpoint)
             .setURLSessionInstrumentationEnabled(true)
+            .setTimeout(2000)
             .setDebug(config.debug)
             .build()
         
