@@ -71,11 +71,12 @@ class HTTPClient {
             span.status = .ok
             return result
         } catch {
-            
-            // TODO - get proper thread - Thread.current unavailable in async
+
             Honeycomb.log(
                 error: error,
-                thread: Thread.main
+                attributes: ["name" : .string("exception")],
+                // TODO - get proper thread - Thread.current unavailable in async
+                thread: Thread.main,
             )
             
             // Only add stacktrace for non-cancelled errors
